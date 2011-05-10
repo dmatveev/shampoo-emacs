@@ -1,4 +1,9 @@
 (require 'cl)
+(require 'xml)
+
+(provide 'shampoo)
+
+(defvar *shampoo* nil)
 
 (defmacro shampoo-generate-layout-impl (surface &rest data-list)
   (let ((decls '()) (commands '()))
@@ -8,7 +13,6 @@
         (pushnew `(set-window-buffer ,wnd (get-buffer-create ,bfr)) commands)
         (pushnew `(,wnd ,code) decls)))
     `(let* (,@decls) ,@commands)))
-
 
 (defun shampoo-create-layout ()
   (interactive)
@@ -24,12 +28,10 @@
      (code-w code-window "*shampoo-code*"       (split-window root-window)))
     surface))
 
-
 (defun shampoo-prepare-buffer ()
   (save-excursion
     (set-buffer (get-buffer-create "*shampoo-working-buffer*"))
     (delete-region (point-min) (point-max))))
-
 
 (defun shampoo-connect (server port)
   (interactive "sServer: \nnPort: ")
@@ -38,9 +40,6 @@
     (shampoo-prepare-buffer)
     (set-process-filter process 'shampoo-response-processor)
     process))
-
-
-(require 'xml)
 
 (defun shampoo-is-complete-response ()
   (interactive)
@@ -58,14 +57,11 @@
         (delete-region (point-min) (point-max))
         (when requests (dolist (r requests) (shampoo-process-request r)))))))
 
-(setq *shampoo* (shampoo-connect "localhost" 9090))
-
 (defun shampoo-xml-attrs-hash (xml-attrs-list)
   (let ((result (make-hash-table)))
     (dolist (pair xml-attrs-list)
       (puthash (car pair) (cdr pair) result))
     result))
-
 
 (defun shampoo-process-aggregate-response (attrs fields buffer-name)
   (save-excursion
@@ -76,23 +72,11 @@
         (insert (caddr item))
         (newline)))))
 
-
-(defun shampoo-process-classes (attrs fields)
-  (save-excursion
-    (set-buffer (get-buffer-create "*shampoo-classes*"))
-    (delete-region (point-min) (point-max))
-    (dolist (item fields)
-      (when (listp item)
-        (insert (caddr item))
-        (newline)))))
-
-
 (defun shampoo-process-source-response (attrs data)
   (save-excursion
     (set-buffer (get-buffer-create "*shampoo-code*"))
     (delete-region (point-min) (point-max))
     (insert (car data))))
-
 
 (defun shampoo-process-request (request)
   (let* ((attrs (shampoo-xml-attrs-hash (cadr request)))
@@ -107,8 +91,9 @@
           (t (shampoo-process-aggregate-response attrs data buffer)))))
 
 
-(process-send-string *shampoo* "<request id=\"23\" type=\"Namespaces\" />")
-(process-send-string *shampoo* "<request id=\"23\" type=\"Classes\" namespace=\"Smalltalk\" />")
-(process-send-string *shampoo* "<request id=\"23\" type=\"Categories\" namespace=\"Smalltalk\" class=\"Stream\" side=\"instance\"/>")
-(process-send-string *shampoo* "<request id=\"23\" type=\"Methods\" namespace=\"Smalltalk\" class=\"Stream\" side=\"instance\" category=\"accessing-reading\"/>")
-(process-send-string *shampoo* "<request id=\"23\" type=\"MethodSource\" namespace=\"Smalltalk\" class=\"Stream\" side=\"instance\" method=\"nextAvailable:into:startingAt:\"/>")
+;; Query examples
+;; (process-send-string *shampoo* "<request id=\"23\" type=\"Namespaces\" />")
+;; (process-send-string *shampoo* "<request id=\"23\" type=\"Classes\" namespace=\"Smalltalk\" />")
+;; (process-send-string *shampoo* "<request id=\"23\" type=\"Categories\" namespace=\"Smalltalk\" class=\"Stream\" side=\"instance\"/>")
+;; (process-send-string *shampoo* "<request id=\"23\" type=\"Methods\" namespace=\"Smalltalk\" class=\"Stream\" side=\"instance\" category=\"accessing-reading\"/>")
+;; (process-send-string *shampoo* "<request id=\"23\" type=\"MethodSource\" namespace=\"Smalltalk\" class=\"Stream\" side=\"instance\" method=\"nextAvailable:into:startingAt:\"/>")
