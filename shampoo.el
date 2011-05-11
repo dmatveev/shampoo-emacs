@@ -4,6 +4,8 @@
 (provide 'shampoo)
 
 (defvar *shampoo* nil)
+(defvar *shampoo-current-namespace* nil)
+(defvar *shampoo-current-class* nil)
 
 (defmacro shampoo-generate-layout-impl (surface &rest data-list)
   (let ((decls '()) (commands '()))
@@ -39,6 +41,7 @@
   (let ((process (open-network-stream "shampoo" nil server port)))
     (shampoo-prepare-buffer)
     (set-process-filter process 'shampoo-response-processor)
+    (setq *shampoo* process)
     process))
 
 (defun shampoo-is-complete-response ()
@@ -89,6 +92,96 @@
                                     ("Methods"    . "*shampoo-methods*"))))))
     (cond ((equal type "MethodSource") (shampoo-process-source-response attrs data))
           (t (shampoo-process-aggregate-response attrs data buffer)))))
+
+(defun shampoo-this-line ()
+  (interactive)
+  (buffer-substring (line-beginning-position) (line-end-position)))
+
+;; TODO: this macro can be better
+(defmacro shampoo-xml (tagname attrs &rest subnodes)
+  `(with-output-to-string
+     (princ "<")
+     (princ tagname)
+     ,@(mapcar (lambda (attr)
+                 (if (keywordp attr)
+                     `(princ ,(concat " " (substring (symbol-name attr) 1) "=\""))
+                   `(progn (princ ,attr)
+                           (princ "\""))))
+               attrs)
+     (princ " />")))
+
+
+;; Modes
+
+(define-derived-mode shampoo-namespaces-list-mode
+  text-mode "Shampoo namespaces")
+
+(defun shampoo-open-namespace-from-buffer ()
+  (interactive)
+  (setq *shampoo-current-namespace* (shampoo-this-line))
+  (process-send-string
+   *shampoo*
+   (shampoo-xml request
+                (:id 1 :type "Classes"
+                 :namespace *shampoo-current-namespace*))))
+
+(define-key shampoo-namespaces-list-mode-map
+  [return] 'shampoo-open-namespace-from-buffer)
+
+
+(define-derived-mode shampoo-classes-list-mode
+  text-mode "Shampoo classes")
+
+(defun shampoo-open-class-from-buffer ()
+  (interactive)
+  (setq *shampoo-current-class* (shampoo-this-line))
+  (message *shampoo-current-class*)
+  (process-send-string
+   *shampoo*
+   (shampoo-xml request
+                (:id 1 :type "Categories"
+                 :namespace *shampoo-current-namespace*
+                 :class *shampoo-current-class*
+                 :side "instance"))))
+
+(define-key shampoo-classes-list-mode-map
+  [return] 'shampoo-open-class-from-buffer)
+
+
+(define-derived-mode shampoo-cats-list-mode
+  text-mode "Shampoo categories")
+
+(defun shampoo-open-cat-from-buffer ()
+  (interactive)
+  (process-send-string
+   *shampoo*
+   (shampoo-xml request
+                (:id 1 :type "Methods"
+                 :namespace *shampoo-current-namespace*
+                 :class *shampoo-current-class*
+                 :category (shampoo-this-line)
+                 :side "instance"))))
+
+(define-key shampoo-cats-list-mode-map
+  [return] 'shampoo-open-cat-from-buffer)
+
+
+(define-derived-mode shampoo-methods-list-mode
+  text-mode "Shampoo methods")
+
+(defun shampoo-open-method-from-buffer ()
+  (interactive)
+  (process-send-string
+   *shampoo*
+   (shampoo-xml request
+                (:id 1 :type "MethodSource"
+                 :namespace *shampoo-current-namespace*
+                 :class *shampoo-current-class*
+                 :method (shampoo-this-line)
+                 :side "instance"))))
+
+(define-key shampoo-methods-list-mode-map
+  [return] 'shampoo-open-method-from-buffer)
 
 
 ;; Query examples
