@@ -11,6 +11,12 @@
 (defvar *shampoo-current-namespace* nil)
 (defvar *shampoo-current-class* nil)
 
+(defconst *shampoo-buffer-info*
+  '(("Namespaces" "*shampoo-namespaces*" shampoo-open-namespace-from-buffer)
+    ("Classes"    "*shampoo-classes*"    shampoo-open-class-from-buffer)
+    ("Categories" "*shampoo-categories*" shampoo-open-cat-from-buffer)
+    ("Methods"    "*shampoo-methods*"    shampoo-open-method-from-buffer)))
+
 
 
 ;; Utils -------------------------------------------------------------
@@ -19,17 +25,18 @@
   (interactive)
   (buffer-substring (line-beginning-position) (line-end-position)))
 
-(defmacro shampoo-xml (tagname attrs &rest subnodes)
+(defmacro shampoo-xml (tagname attrs &optional text)
   `(with-output-to-string
-     (princ "<")
-     (princ ,tagname)
+     (princ ,(concat "<" (symbol-name tagname)))
      ,@(mapcar (lambda (attr)
                  (if (keywordp attr)
                      `(princ ,(concat " " (substring (symbol-name attr) 1) "=\""))
                    `(progn (princ ,attr)
                            (princ "\""))))
                attrs)
-     (princ " />")))
+     ,(if text
+          `(princ ,(concat ">" text "</" (symbol-name tagname) ">"))
+          '(princ " />"))))
 
 
 
@@ -43,7 +50,7 @@
   (setq *shampoo-current-namespace* (shampoo-this-line))
   (process-send-string
    *shampoo*
-   (shampoo-xml 'request
+   (shampoo-xml request
                 (:id 1 :type "Classes"
                  :namespace *shampoo-current-namespace*))))
 
@@ -59,7 +66,7 @@
   (setq *shampoo-current-class* (shampoo-this-line))
   (process-send-string
    *shampoo*
-   (shampoo-xml 'request
+   (shampoo-xml request
                 (:id 1 :type "Categories"
                  :namespace *shampoo-current-namespace*
                  :class *shampoo-current-class*
@@ -76,7 +83,7 @@
   (interactive)
   (process-send-string
    *shampoo*
-   (shampoo-xml 'request
+   (shampoo-xml request
                 (:id 1 :type "Methods"
                  :namespace *shampoo-current-namespace*
                  :class *shampoo-current-class*
@@ -94,7 +101,7 @@
   (interactive)
   (process-send-string
    *shampoo*
-   (shampoo-xml 'request
+   (shampoo-xml request
                 (:id 1 :type "MethodSource"
                  :namespace *shampoo-current-namespace*
                  :class *shampoo-current-class*
@@ -107,6 +114,15 @@
 
 (define-derived-mode shampoo-code-mode
   text-mode "Shampoo code")
+
+
+(defun shampoo-compile-code ()
+  (interactive)
+  (message "FAIL"))
+
+(define-key shampoo-code-mode-map
+  "\C-c\C-c" 'shampoo-compile-code)
+
 
 
 ;; Layout ------------------------------------------------------------
@@ -156,7 +172,7 @@
     (shampoo-prepare-buffer)
     (set-process-filter process 'shampoo-response-processor)
     (setq *shampoo* process)
-    (process-send-string *shampoo* (shampoo-xml 'request (:id 1 :type "Namespaces")))
+    (process-send-string *shampoo* (shampoo-xml request (:id 1 :type "Namespaces") "^42"))
     process))
 
 
@@ -176,7 +192,8 @@
       (let ((requests nil))
         (setq requests (xml-parse-region (point-min) (point-max)))
         (delete-region (point-min) (point-max))
-        (when requests (dolist (r requests) (shampoo-process-response r)))))))
+        (when requests
+          (dolist (r requests) (shampoo-process-response r)))))))
 
 (defun shampoo-xml-attrs-hash (xml-attrs-list)
   (let ((result (make-hash-table)))
@@ -210,9 +227,6 @@
   (let* ((attrs (shampoo-xml-attrs-hash (cadr request)))
          (type (gethash 'type attrs))
          (data (cddr request))
-         (buffer (cdr (assoc type '(("Namespaces" "*shampoo-namespaces*" shampoo-open-namespace-from-buffer)
-                                    ("Classes"    "*shampoo-classes*"    shampoo-open-class-from-buffer)
-                                    ("Categories" "*shampoo-categories*" shampoo-open-cat-from-buffer)
-                                    ("Methods"    "*shampoo-methods*"    shampoo-open-method-from-buffer))))))
+         (buffer (cdr (assoc type *shampoo-buffer-info*))))
     (cond ((equal type "MethodSource") (shampoo-process-source-response attrs data))
           (t (shampoo-process-aggregate-response attrs data buffer)))))
