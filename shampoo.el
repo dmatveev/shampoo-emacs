@@ -67,6 +67,13 @@
   (process-send-string
    *shampoo*
    (shampoo-xml 'request
+                `(:id 1 :type "Class"
+                  :namespace ,*shampoo-current-namespace*
+                  :class ,*shampoo-current-class*
+                  :side "instance")))
+  (process-send-string
+   *shampoo*
+   (shampoo-xml 'request
                 `(:id 1 :type "Categories"
                   :namespace ,*shampoo-current-namespace*
                   :class ,*shampoo-current-class*
@@ -232,19 +239,43 @@
     (delete-region (point-min) (point-max))
     (insert (car data))))
 
+(defun shampoo-xml-nodes-named (symbol data)
+  (remove-if (lambda (x)
+               (or (stringp x)
+                   (not (equal (car x) symbol))))
+             data))
+
+(defun shampoo-process-class-response (attrs data)
+  (save-excursion
+    (set-buffer (get-buffer-create "*shampoo-code*"))
+    (delete-region (point-min) (point-max))
+    (insert (concat (gethash 'superclass attrs) " subclass: #" (gethash 'class attrs)))
+    (newline)
+    (let ((frmt '(("instanceVariableNames:" instvar)
+                  ("classVariableNames:" classvar)
+                  ("poolDictionaries:" poolvar))))
+      (dolist (each frmt)
+        (let* ((nodes (shampoo-xml-nodes-named (cadr each) data))
+               (join (lambda (a b) (concat a " " b)))
+               (text (if nodes (reduce join (mapcar 'caddr nodes)) "")))
+          (insert (concat "    " (car each) " '" text "'"))
+          (newline))))))
+
 (defun shampoo-process-operational-response (attrs data)
   (let ((status (gethash 'status attrs)))
     (message
-     (concat "Shampoo: "
+     (concat "Shampoo: operation "
              (cond ((equal status "success") "successful")
                    ((equal status "failure") "failed"))))))
-
 
 (defun shampoo-process-response (request)
   (let* ((attrs (shampoo-xml-attrs-hash (cadr request)))
          (type (gethash 'type attrs))
          (data (cddr request))
-         (buffer (cdr (assoc type *shampoo-buffer-info*))))
-    (cond ((equal type "MethodSource") (shampoo-process-source-response attrs data))
-          ((equal type "OperationalResponse") (shampoo-process-operational-response attrs data))
-          (t (shampoo-process-aggregate-response attrs data buffer)))))
+         (buffer (cdr (assoc type *shampoo-buffer-info*)))
+         (handlers '(("MethodSource" shampoo-process-source-response)
+                     ("OperationalResponse" shampoo-process-operational-response)
+                     ("Class" shampoo-process-class-response)))
+         (handler (assoc type handlers)))
+    (if handler (funcall (cadr handler) attrs data)
+      (shampoo-process-aggregate-response attrs data buffer))))
