@@ -118,7 +118,16 @@
 
 (defun shampoo-compile-code ()
   (interactive)
-  (message "FAIL"))
+  (save-excursion
+    (set-buffer (get-buffer "*shampoo-code*"))
+    (process-send-string
+     *shampoo*
+     (shampoo-xml 'request
+                  `(:id 1 :type "CompileMethod"
+                    :namespace ,*shampoo-current-namespace*
+                    :class ,*shampoo-current-class*
+                    :side "instance")
+                  (buffer-substring (point-min) (point-max))))))
 
 (define-key shampoo-code-mode-map
   "\C-c\C-c" 'shampoo-compile-code)
@@ -196,7 +205,7 @@
           (dolist (r requests) (shampoo-process-response r)))))))
 
 (defun shampoo-xml-attrs-hash (xml-attrs-list)
-  (let ((result (make-hash-table)))
+  (let ((result (make-hash-table :test 'equal)))
     (dolist (pair xml-attrs-list)
       (puthash (car pair) (cdr pair) result))
     result))
@@ -223,10 +232,19 @@
     (delete-region (point-min) (point-max))
     (insert (car data))))
 
+(defun shampoo-process-operational-response (attrs data)
+  (let ((status (gethash 'status attrs)))
+    (message
+     (concat "Shampoo: "
+             (cond ((equal status "success") "successful")
+                   ((equal status "failure") "failed"))))))
+
+
 (defun shampoo-process-response (request)
   (let* ((attrs (shampoo-xml-attrs-hash (cadr request)))
          (type (gethash 'type attrs))
          (data (cddr request))
          (buffer (cdr (assoc type *shampoo-buffer-info*))))
     (cond ((equal type "MethodSource") (shampoo-process-source-response attrs data))
+          ((equal type "OperationalResponse") (shampoo-process-operational-response attrs data))
           (t (shampoo-process-aggregate-response attrs data buffer)))))
