@@ -94,7 +94,7 @@
   (interactive)
   (process-send-string
    *shampoo*
-   (shampoo-xml request
+   (shampoo-xml 'request
                 (:id 1 :type "MethodSource"
                  :namespace *shampoo-current-namespace*
                  :class *shampoo-current-class*
@@ -105,30 +105,38 @@
   [return] 'shampoo-open-method-from-buffer)
 
 
+(define-derived-mode shampoo-code-mode
+  text-mode "Shampoo code")
+
 
 ;; Layout ------------------------------------------------------------
 
 (defmacro shampoo-generate-layout-impl (surface &rest data-list)
-  (let ((decls '()) (commands '()))
+  (let ((decls '()) (commands '()) (buffa (make-symbol "buffa")))
     (dolist (data data-list)
-      (destructuring-bind (sym wnd bfr code) data
-        (pushnew `(puthash ',sym ,wnd surface) commands)
-        (pushnew `(set-window-buffer ,wnd (get-buffer-create ,bfr)) commands)
+      (destructuring-bind (sym wnd bfr code mode) data
+        (pushnew `(let ((,buffa (get-buffer-create ,bfr)))
+                    (set-window-buffer ,wnd ,buffa)
+                    (save-excursion
+                      (set-buffer ,buffa)
+                      (,mode))
+                    (puthash ',sym ,wnd surface))
+                 commands)
         (pushnew `(,wnd ,code) decls)))
     `(let* (,@decls) ,@commands)))
 
 (defun shampoo-create-layout ()
   (interactive)
   (delete-other-windows)
-  (let ((root-window (selected-window))
+  (let ((root (selected-window))
         (surface (make-hash-table)))
     (shampoo-generate-layout-impl
      surface
-     (nspc-w nspc-window "*shampoo-namespaces*" root-window)
-     (mets-w meth-window "*shampoo-methods*"    (split-window cats-window nil t))
-     (clss-w clss-window "*shampoo-classes*"    (split-window root-window nil t))
-     (cats-w cats-window "*shampoo-categories*" (split-window root-window nil t))
-     (code-w code-window "*shampoo-code*"       (split-window root-window)))
+     (nspc-w nspc "*shampoo-namespaces*" root shampoo-namespaces-list-mode)
+     (mets-w meth "*shampoo-methods*"    (split-window cats nil t) shampoo-methods-list-mode)
+     (clss-w clss "*shampoo-classes*"    (split-window root nil t) shampoo-classes-list-mode)
+     (cats-w cats "*shampoo-categories*" (split-window root nil t) shampoo-cats-list-mode)
+     (code-w code "*shampoo-code*"       (split-window root) shampoo-code-mode))
     surface))
 
 
@@ -180,14 +188,17 @@
 
 ;; Response processing -----------------------------------------------
 
-(defun shampoo-process-aggregate-response (attrs fields buffer-name)
-  (save-excursion
-    (set-buffer (get-buffer-create buffer-name))
-    (delete-region (point-min) (point-max))
-    (dolist (item fields)
-      (when (listp item)
-        (insert (caddr item))
-        (newline)))))
+(defun shampoo-process-aggregate-response (attrs fields buffer-info)
+  (destructuring-bind (buffer-name buffer-selector) buffer-info
+    (save-excursion
+      (set-buffer (get-buffer-create buffer-name))
+      (delete-region (point-min) (point-max))
+      (dolist (item fields)
+        (when (listp item)
+          (insert (caddr item))
+          (newline)))
+      (goto-line 1)
+      (funcall buffer-selector))))
 
 (defun shampoo-process-source-response (attrs data)
   (save-excursion
@@ -199,10 +210,9 @@
   (let* ((attrs (shampoo-xml-attrs-hash (cadr request)))
          (type (gethash 'type attrs))
          (data (cddr request))
-         (buffer (cdr (assoc type '(("Namespaces" . "*shampoo-namespaces*")
-                                    ("Namespaces" . "*shampoo-namespaces*")
-                                    ("Classes"    . "*shampoo-classes*")
-                                    ("Categories" . "*shampoo-categories*")
-                                    ("Methods"    . "*shampoo-methods*"))))))
+         (buffer (cdr (assoc type '(("Namespaces" "*shampoo-namespaces*" shampoo-open-namespace-from-buffer)
+                                    ("Classes"    "*shampoo-classes*"    shampoo-open-class-from-buffer)
+                                    ("Categories" "*shampoo-categories*" shampoo-open-cat-from-buffer)
+                                    ("Methods"    "*shampoo-methods*"    shampoo-open-method-from-buffer))))))
     (cond ((equal type "MethodSource") (shampoo-process-source-response attrs data))
           (t (shampoo-process-aggregate-response attrs data buffer)))))
