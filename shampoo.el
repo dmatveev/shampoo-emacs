@@ -25,18 +25,18 @@
   (interactive)
   (buffer-substring (line-beginning-position) (line-end-position)))
 
-(defmacro shampoo-xml (tagname attrs &optional text)
-  `(with-output-to-string
-     (princ ,(concat "<" (symbol-name tagname)))
-     ,@(mapcar (lambda (attr)
-                 (if (keywordp attr)
-                     `(princ ,(concat " " (substring (symbol-name attr) 1) "=\""))
-                   `(progn (princ ,attr)
-                           (princ "\""))))
-               attrs)
-     ,(if text
-          `(princ ,(concat ">" text "</" (symbol-name tagname) ">"))
-          '(princ " />"))))
+(defun shampoo-xml (tagname attrs &optional text)
+  (with-output-to-string
+    (princ (concat "<" (symbol-name tagname)))
+    (mapcar (lambda (attr)
+              (if (keywordp attr)
+                  (princ (concat " " (substring (symbol-name attr) 1) "=\""))
+                (progn (princ attr)
+                       (princ "\""))))
+            attrs)
+    (if text
+        (princ (concat ">" text "</" (symbol-name tagname) ">"))
+      (princ " />"))))
 
 
 
@@ -50,9 +50,9 @@
   (setq *shampoo-current-namespace* (shampoo-this-line))
   (process-send-string
    *shampoo*
-   (shampoo-xml request
-                (:id 1 :type "Classes"
-                 :namespace *shampoo-current-namespace*))))
+   (shampoo-xml 'request
+                `(:id 1 :type "Classes"
+                  :namespace ,*shampoo-current-namespace*))))
 
 (define-key shampoo-namespaces-list-mode-map
   [return] 'shampoo-open-namespace-from-buffer)
@@ -66,11 +66,11 @@
   (setq *shampoo-current-class* (shampoo-this-line))
   (process-send-string
    *shampoo*
-   (shampoo-xml request
-                (:id 1 :type "Categories"
-                 :namespace *shampoo-current-namespace*
-                 :class *shampoo-current-class*
-                 :side "instance"))))
+   (shampoo-xml 'request
+                `(:id 1 :type "Categories"
+                  :namespace ,*shampoo-current-namespace*
+                  :class ,*shampoo-current-class*
+                  :side "instance"))))
 
 (define-key shampoo-classes-list-mode-map
   [return] 'shampoo-open-class-from-buffer)
@@ -83,12 +83,12 @@
   (interactive)
   (process-send-string
    *shampoo*
-   (shampoo-xml request
-                (:id 1 :type "Methods"
-                 :namespace *shampoo-current-namespace*
-                 :class *shampoo-current-class*
-                 :category (shampoo-this-line)
-                 :side "instance"))))
+   (shampoo-xml 'request
+                `(:id 1 :type "Methods"
+                  :namespace ,*shampoo-current-namespace*
+                  :class ,*shampoo-current-class*
+                  :category ,(shampoo-this-line)
+                  :side "instance"))))
 
 (define-key shampoo-cats-list-mode-map
   [return] 'shampoo-open-cat-from-buffer)
@@ -101,12 +101,12 @@
   (interactive)
   (process-send-string
    *shampoo*
-   (shampoo-xml request
-                (:id 1 :type "MethodSource"
-                 :namespace *shampoo-current-namespace*
-                 :class *shampoo-current-class*
-                 :method (shampoo-this-line)
-                 :side "instance"))))
+   (shampoo-xml 'request
+                `(:id 1 :type "MethodSource"
+                  :namespace ,*shampoo-current-namespace*
+                  :class ,*shampoo-current-class*
+                  :method ,(shampoo-this-line)
+                  :side "instance"))))
 
 (define-key shampoo-methods-list-mode-map
   [return] 'shampoo-open-method-from-buffer)
@@ -172,7 +172,7 @@
     (shampoo-prepare-buffer)
     (set-process-filter process 'shampoo-response-processor)
     (setq *shampoo* process)
-    (process-send-string *shampoo* (shampoo-xml request (:id 1 :type "Namespaces") "^42"))
+    (process-send-string *shampoo* (shampoo-xml 'request '(:id 1 :type "Namespaces")))
     process))
 
 
