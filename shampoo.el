@@ -16,6 +16,16 @@
     ("Categories" "*shampoo-categories*" shampoo-open-cat-from-buffer)
     ("Methods"    "*shampoo-methods*"    shampoo-open-method-from-buffer)))
 
+(defconst *shampoo-class-template*
+  '(("instanceVariableNames:" instvar)
+    ("classVariableNames:"    classvar)
+    ("poolDictionaries:"      poolvar)))
+
+(defconst *shampoo-response-handlers*
+  '(("MethodSource"        shampoo-process-source-response)
+    ("OperationalResponse" shampoo-process-operational-response)
+    ("Class"               shampoo-process-class-response)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -198,12 +208,13 @@
   (save-excursion
     (set-buffer (get-buffer-create "*shampoo-working-buffer*"))
     (insert string)
-    (when (shampoo-is-complete-response)
-      (let ((requests nil))
-        (setq requests (xml-parse-region (point-min) (point-max)))
-        (delete-region (point-min) (point-max))
+    (let ((this-response-end (shampoo-is-complete-response)))
+    (while this-response-end
+      (let ((requests (xml-parse-region (point-min) this-response-end)))
+        (delete-region (point-min) this-response-end)
         (when requests
-          (dolist (r requests) (shampoo-process-response r)))))))
+          (dolist (r requests) (shampoo-process-response r)))
+        (setq this-response-end (shampoo-is-complete-response)))))))
 
 (defun shampoo-xml-attrs-hash (xml-attrs-list)
   (let ((result (make-hash-table :test 'equal)))
@@ -244,9 +255,7 @@
     (delete-region (point-min) (point-max))
     (insert (concat (gethash 'superclass attrs) " subclass: #" (gethash 'class attrs)))
     (newline)
-    (let ((frmt '(("instanceVariableNames:" instvar)
-                  ("classVariableNames:" classvar)
-                  ("poolDictionaries:" poolvar))))
+    (let ((frmt *shampoo-class-template*))
       (dolist (each frmt)
         (let* ((nodes (shampoo-xml-nodes-named (cadr each) data))
                (join (lambda (a b) (concat a " " b)))
@@ -266,9 +275,7 @@
          (type (gethash 'type attrs))
          (data (cddr request))
          (buffer (cdr (assoc type *shampoo-buffer-info*)))
-         (handlers '(("MethodSource" shampoo-process-source-response)
-                     ("OperationalResponse" shampoo-process-operational-response)
-                     ("Class" shampoo-process-class-response)))
+         (handlers *shampoo-response-handlers*)
          (handler (assoc type handlers)))
     (if handler (funcall (cadr handler) attrs data)
       (shampoo-process-aggregate-response attrs data buffer))))
