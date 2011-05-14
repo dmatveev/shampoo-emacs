@@ -4,8 +4,7 @@
 (provide 'shampoo)
 
 
-
-;; Globals -----------------------------------------------------------
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Globals ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar *shampoo* nil)
 (defvar *shampoo-current-namespace* nil)
@@ -18,8 +17,7 @@
     ("Methods"    "*shampoo-methods*"    shampoo-open-method-from-buffer)))
 
 
-
-;; Utils -------------------------------------------------------------
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun shampoo-this-line ()
   (interactive)
@@ -39,8 +37,7 @@
       (princ " />"))))
 
 
-
-;; Modes -------------------------------------------------------------
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Modes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-derived-mode shampoo-namespaces-list-mode
   text-mode "Shampoo namespaces")
@@ -140,8 +137,7 @@
   "\C-c\C-c" 'shampoo-compile-code)
 
 
-
-;; Layout ------------------------------------------------------------
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Layout ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmacro shampoo-generate-layout-impl (surface &rest data-list)
   (let ((decls '()) (commands '()) (buffa (make-symbol "buffa")))
@@ -172,8 +168,7 @@
     surface))
 
 
-
-;; Networking --------------------------------------------------------
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Networking ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun shampoo-prepare-buffer ()
   (save-excursion
@@ -192,8 +187,7 @@
     process))
 
 
-
-;; XML processing ----------------------------------------------------
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XML processing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun shampoo-is-complete-response ()
   (save-excursion
@@ -218,8 +212,7 @@
     result))
 
 
-
-;; Response processing -----------------------------------------------
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Response processing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun shampoo-process-aggregate-response (attrs fields buffer-info)
   (destructuring-bind (buffer-name buffer-selector) buffer-info
