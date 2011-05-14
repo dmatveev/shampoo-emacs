@@ -210,10 +210,9 @@
     (insert string)
     (let ((this-response-end (shampoo-is-complete-response)))
     (while this-response-end
-      (let ((requests (xml-parse-region (point-min) this-response-end)))
+      (let ((response (xml-parse-region (point-min) this-response-end)))
         (delete-region (point-min) this-response-end)
-        (when requests
-          (dolist (r requests) (shampoo-process-response r)))
+        (shampoo-process-response (car response))
         (setq this-response-end (shampoo-is-complete-response)))))))
 
 (defun shampoo-xml-attrs-hash (xml-attrs-list)
@@ -270,10 +269,10 @@
              (cond ((equal status "success") "successful")
                    ((equal status "failure") "failed"))))))
 
-(defun shampoo-process-response (request)
-  (let* ((attrs (shampoo-xml-attrs-hash (cadr request)))
+(defun shampoo-process-response (response)
+  (let* ((attrs (shampoo-xml-attrs-hash (cadr response)))
          (type (gethash 'type attrs))
-         (data (cddr request))
+         (data (cddr response))
          (buffer (cdr (assoc type *shampoo-buffer-info*)))
          (handlers *shampoo-response-handlers*)
          (handler (assoc type handlers)))
