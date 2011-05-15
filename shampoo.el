@@ -30,7 +30,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun shampoo-this-line ()
-  (interactive)
   (buffer-substring (line-beginning-position) (line-end-position)))
 
 (defun shampoo-xml (tagname attrs &optional text)
@@ -164,7 +163,6 @@
     `(let* (,@decls) ,@commands)))
 
 (defun shampoo-create-layout ()
-  (interactive)
   (delete-other-windows)
   (let ((root (selected-window))
         (surface (make-hash-table)))
@@ -209,17 +207,23 @@
     (set-buffer (get-buffer-create "*shampoo-working-buffer*"))
     (insert string)
     (let ((this-response-end (shampoo-is-complete-response)))
-    (while this-response-end
-      (let ((response (xml-parse-region (point-min) this-response-end)))
-        (delete-region (point-min) this-response-end)
-        (shampoo-process-response (car response))
-        (setq this-response-end (shampoo-is-complete-response)))))))
+      (while this-response-end
+        (let ((response (xml-parse-region (point-min) this-response-end)))
+          (delete-region (point-min) this-response-end)
+          (shampoo-process-response (car response))
+          (setq this-response-end (shampoo-is-complete-response)))))))
 
 (defun shampoo-xml-attrs-hash (xml-attrs-list)
   (let ((result (make-hash-table :test 'equal)))
     (dolist (pair xml-attrs-list)
       (puthash (car pair) (cdr pair) result))
     result))
+
+(defun shampoo-xml-nodes-named (symbol data)
+  (remove-if (lambda (x)
+               (or (stringp x)
+                   (not (equal (car x) symbol))))
+             data))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Response processing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -242,25 +246,18 @@
     (delete-region (point-min) (point-max))
     (insert (car data))))
 
-(defun shampoo-xml-nodes-named (symbol data)
-  (remove-if (lambda (x)
-               (or (stringp x)
-                   (not (equal (car x) symbol))))
-             data))
-
 (defun shampoo-process-class-response (attrs data)
   (save-excursion
     (set-buffer (get-buffer-create "*shampoo-code*"))
     (delete-region (point-min) (point-max))
     (insert (concat (gethash 'superclass attrs) " subclass: #" (gethash 'class attrs)))
     (newline)
-    (let ((frmt *shampoo-class-template*))
-      (dolist (each frmt)
-        (let* ((nodes (shampoo-xml-nodes-named (cadr each) data))
-               (join (lambda (a b) (concat a " " b)))
-               (text (if nodes (reduce join (mapcar 'caddr nodes)) "")))
-          (insert (concat "    " (car each) " '" text "'"))
-          (newline))))))
+    (dolist (each *shampoo-class-template*)
+      (let* ((nodes (shampoo-xml-nodes-named (cadr each) data))
+             (join (lambda (a b) (concat a " " b)))
+             (text (if nodes (reduce join (mapcar 'caddr nodes)) "")))
+        (insert (concat "    " (car each) " '" text "'"))
+        (newline)))))
 
 (defun shampoo-process-operational-response (attrs data)
   (let ((status (gethash 'status attrs)))
@@ -274,7 +271,6 @@
          (type (gethash 'type attrs))
          (data (cddr response))
          (buffer (cdr (assoc type *shampoo-buffer-info*)))
-         (handlers *shampoo-response-handlers*)
-         (handler (assoc type handlers)))
+         (handler (assoc type *shampoo-response-handlers*)))
     (if handler (funcall (cadr handler) attrs data)
       (shampoo-process-aggregate-response attrs data buffer))))
