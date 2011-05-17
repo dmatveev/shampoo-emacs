@@ -32,6 +32,11 @@
 (defun shampoo-this-line ()
   (buffer-substring (line-beginning-position) (line-end-position)))
 
+(defun shampoo-clear-buffer (buffer-name)
+  (save-excursion
+    (set-buffer (get-buffer buffer-name))
+    (erase-buffer)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XML ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -207,6 +212,7 @@
   (interactive "sServer: \nnPort: ")
   (message "Shampoo: connecting to %s:%d..." server port)
   (let ((process (open-network-stream "shampoo" nil server port)))
+    (message "Shampoo: connected successfully")
     (shampoo-create-layout)
     (shampoo-prepare-buffer)
     (set-process-filter process 'shampoo-response-processor)
@@ -214,6 +220,13 @@
     (process-send-string *shampoo* (shampoo-xml 'request '(:id 1 :type "Namespaces")))
     process))
 
+(defun shampoo-disconnect ()
+  (interactive)
+  (message "Shampoo: disconnected")
+  (delete-process *shampoo*)
+  (dolist (buffer-info *shampoo-buffer-info*)
+    (shampoo-clear-buffer (cadr buffer-info)))
+  (shampoo-clear-buffer "*shampoo-code*"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XML processing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
