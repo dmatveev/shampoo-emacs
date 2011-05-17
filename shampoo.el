@@ -32,6 +32,26 @@
 (defun shampoo-this-line ()
   (buffer-substring (line-beginning-position) (line-end-position)))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XML ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defsubst shampoo-replace-in-string (str regexp newtext)
+  (replace-regexp-in-string regexp newtext str t t))
+
+;; This function has been taken from emacs-jabber. Thanks to its authors
+(defun shampoo-escape-xml (str)
+  (if (stringp str)
+      (let ((newstr (concat str)))
+        (setq newstr (shampoo-replace-in-string newstr "\f" "\n"))
+        (setq newstr (shampoo-replace-in-string newstr "[\000-\010\013\014\016-\037]" " "))
+        (setq newstr (shampoo-replace-in-string newstr "&" "&amp;"))
+        (setq newstr (shampoo-replace-in-string newstr "<" "&lt;"))
+        (setq newstr (shampoo-replace-in-string newstr ">" "&gt;"))
+        (setq newstr (shampoo-replace-in-string newstr "'" "&apos;"))
+        (setq newstr (shampoo-replace-in-string newstr "\"" "&quot;"))
+        newstr)
+    str))
+
 (defun shampoo-xml (tagname attrs &optional text)
   (with-output-to-string
     (princ (concat "<" (symbol-name tagname)))
@@ -42,7 +62,7 @@
                        (princ "\""))))
             attrs)
     (if text
-        (princ (concat ">" text "</" (symbol-name tagname) ">"))
+        (princ (concat ">" (shampoo-escape-xml text) "</" (symbol-name tagname) ">"))
       (princ " />"))))
 
 
