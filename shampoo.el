@@ -143,7 +143,7 @@
                 `(:id 1 :type "MethodSource"
                   :namespace ,*shampoo-current-namespace*
                   :class ,*shampoo-current-class*
-                  :method ,(shampoo-this-line)
+                  :method ,(shampoo-escape-xml (shampoo-this-line))
                   :side "instance"))))
 
 (define-key shampoo-methods-list-mode-map
