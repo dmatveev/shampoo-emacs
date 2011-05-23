@@ -35,7 +35,8 @@
 (defun shampoo-clear-buffer (buffer-name)
   (save-excursion
     (set-buffer (get-buffer buffer-name))
-    (erase-buffer)))
+    (let ((buffer-read-only nil))
+      (erase-buffer))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XML ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
