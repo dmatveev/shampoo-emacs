@@ -212,6 +212,7 @@
 
 (defun shampoo-connect (server port)
   (interactive "sServer: \nnPort: ")
+  (if *shampoo* (shampoo-disconnect))
   (message "Shampoo: connecting to %s:%d..." server port)
   (let ((process (open-network-stream "shampoo" nil server port)))
     (message "Shampoo: connected successfully")
