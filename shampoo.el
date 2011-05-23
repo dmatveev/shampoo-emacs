@@ -11,10 +11,10 @@
 (defvar *shampoo-current-class* nil)
 
 (defconst *shampoo-buffer-info*
-  '(("Namespaces" "*shampoo-namespaces*" shampoo-open-namespace-from-buffer)
-    ("Classes"    "*shampoo-classes*"    shampoo-open-class-from-buffer)
-    ("Categories" "*shampoo-categories*" shampoo-open-cat-from-buffer)
-    ("Methods"    "*shampoo-methods*"    shampoo-open-method-from-buffer)))
+  '(("Namespaces" "*shampoo-namespaces*")
+    ("Classes"    "*shampoo-classes*"   )
+    ("Categories" "*shampoo-categories*")
+    ("Methods"    "*shampoo-methods*"   )))
 
 (defconst *shampoo-class-template*
   '(("instanceVariableNames:" instvar)
@@ -32,6 +32,31 @@
 (defun shampoo-this-line ()
   (buffer-substring (line-beginning-position) (line-end-position)))
 
+(defun shampoo-clear-buffer (buffer-name)
+  (save-excursion
+    (set-buffer (get-buffer buffer-name))
+    (erase-buffer)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XML ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defsubst shampoo-replace-in-string (str regexp newtext)
+  (replace-regexp-in-string regexp newtext str t t))
+
+;; This function has been taken from emacs-jabber. Thanks to its authors
+(defun shampoo-escape-xml (str)
+  (if (stringp str)
+      (let ((newstr (concat str)))
+        (setq newstr (shampoo-replace-in-string newstr "\f" "\n"))
+        (setq newstr (shampoo-replace-in-string newstr "[\000-\010\013\014\016-\037]" " "))
+        (setq newstr (shampoo-replace-in-string newstr "&" "&amp;"))
+        (setq newstr (shampoo-replace-in-string newstr "<" "&lt;"))
+        (setq newstr (shampoo-replace-in-string newstr ">" "&gt;"))
+        (setq newstr (shampoo-replace-in-string newstr "'" "&apos;"))
+        (setq newstr (shampoo-replace-in-string newstr "\"" "&quot;"))
+        newstr)
+    str))
+
 (defun shampoo-xml (tagname attrs &optional text)
   (with-output-to-string
     (princ (concat "<" (symbol-name tagname)))
@@ -42,92 +67,76 @@
                        (princ "\""))))
             attrs)
     (if text
-        (princ (concat ">" text "</" (symbol-name tagname) ">"))
+        (princ (concat ">" (shampoo-escape-xml text) "</" (symbol-name tagname) ">"))
       (princ " />"))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Modes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-derived-mode shampoo-namespaces-list-mode
-  text-mode "Shampoo namespaces")
+(define-derived-mode shampoo-list-mode
+  text-mode "Shampoo generic mode for list buffers"
+  (setq buffer-read-only t)
+  (make-local-variable 'set-current-item)
+  (make-local-variable 'produce-response))
 
-(defun shampoo-open-namespace-from-buffer ()
+(defun shampoo-open-from-list ()
   (interactive)
-  (setq *shampoo-current-namespace* (shampoo-this-line))
-  (process-send-string
-   *shampoo*
-   (shampoo-xml 'request
-                `(:id 1 :type "Classes"
-                  :namespace ,*shampoo-current-namespace*))))
+  (let ((this-line (shampoo-this-line)))
+    (when (boundp 'set-current-item) (funcall set-current-item this-line))
+    (process-send-string
+     *shampoo*
+     (funcall produce-response this-line))))
 
-(define-key shampoo-namespaces-list-mode-map
-  [return] 'shampoo-open-namespace-from-buffer)
+(define-key shampoo-list-mode-map
+  [return] 'shampoo-open-from-list)
+
+
+(define-derived-mode shampoo-namespaces-list-mode
+  shampoo-list-mode "Shampoo namespaces"
+  (setq set-current-item (lambda (x) (setq *shampoo-current-namespace* x)))
+  (setq produce-response (lambda (x) (shampoo-xml 'request `(:id 1 :type "Classes" :namespace ,x)))))
 
 
 (define-derived-mode shampoo-classes-list-mode
-  text-mode "Shampoo classes")
-
-(defun shampoo-open-class-from-buffer ()
-  (interactive)
-  (setq *shampoo-current-class* (shampoo-this-line))
-  (process-send-string
-   *shampoo*
-   (shampoo-xml 'request
-                `(:id 1 :type "Class"
-                  :namespace ,*shampoo-current-namespace*
-                  :class ,*shampoo-current-class*
-                  :side "instance")))
-  (process-send-string
-   *shampoo*
-   (shampoo-xml 'request
-                `(:id 1 :type "Categories"
-                  :namespace ,*shampoo-current-namespace*
-                  :class ,*shampoo-current-class*
-                  :side "instance"))))
-
-(define-key shampoo-classes-list-mode-map
-  [return] 'shampoo-open-class-from-buffer)
-
+  shampoo-list-mode "Shampoo classes"
+  (setq set-current-item (lambda (x) (setq *shampoo-current-class* x)))
+  (setq produce-response
+        (lambda (x)
+          (shampoo-xml 'request
+                       `(:id 1 :type "Categories"
+                        :namespace ,*shampoo-current-namespace*
+                        :class ,x :side "instance")))))
 
 (define-derived-mode shampoo-cats-list-mode
-  text-mode "Shampoo categories")
-
-(defun shampoo-open-cat-from-buffer ()
-  (interactive)
-  (process-send-string
-   *shampoo*
-   (shampoo-xml 'request
-                `(:id 1 :type "Methods"
-                  :namespace ,*shampoo-current-namespace*
-                  :class ,*shampoo-current-class*
-                  :category ,(shampoo-this-line)
-                  :side "instance"))))
-
-(define-key shampoo-cats-list-mode-map
-  [return] 'shampoo-open-cat-from-buffer)
-
+  shampoo-list-mode "Shampoo categories"
+  (setq produce-response
+        (lambda (x)
+          (shampoo-xml 'request
+                       `(:id 1 :type "Methods"
+                         :namespace ,*shampoo-current-namespace*
+                         :class ,*shampoo-current-class*
+                         :category ,x :side "instance")))))
 
 (define-derived-mode shampoo-methods-list-mode
-  text-mode "Shampoo methods")
+  shampoo-list-mode "Shampoo methods"
+  (setq produce-response
+        (lambda (x)
+          (shampoo-xml 'request
+                       `(:id 1 :type "MethodSource"
+                         :namespace ,*shampoo-current-namespace*
+                         :class ,*shampoo-current-class*
+                         :method ,(shampoo-escape-xml x)
+                         :side "instance")))))
 
-(defun shampoo-open-method-from-buffer ()
-  (interactive)
-  (process-send-string
-   *shampoo*
-   (shampoo-xml 'request
-                `(:id 1 :type "MethodSource"
-                  :namespace ,*shampoo-current-namespace*
-                  :class ,*shampoo-current-class*
-                  :method ,(shampoo-this-line)
-                  :side "instance"))))
-
-(define-key shampoo-methods-list-mode-map
-  [return] 'shampoo-open-method-from-buffer)
+(defun shampoo-open-from-buffer-helper (buffer-name)
+  (when buffer-name
+    (save-excursion
+      (set-buffer (get-buffer buffer-name))
+      (lambda (a b) (funcall 'produce-response)))))
 
 
 (define-derived-mode shampoo-code-mode
   text-mode "Shampoo code")
-
 
 (defun shampoo-compile-code ()
   (interactive)
@@ -187,12 +196,21 @@
   (interactive "sServer: \nnPort: ")
   (message "Shampoo: connecting to %s:%d..." server port)
   (let ((process (open-network-stream "shampoo" nil server port)))
+    (message "Shampoo: connected successfully")
     (shampoo-create-layout)
     (shampoo-prepare-buffer)
     (set-process-filter process 'shampoo-response-processor)
     (setq *shampoo* process)
     (process-send-string *shampoo* (shampoo-xml 'request '(:id 1 :type "Namespaces")))
     process))
+
+(defun shampoo-disconnect ()
+  (interactive)
+  (message "Shampoo: disconnected")
+  (delete-process *shampoo*)
+  (dolist (buffer-info *shampoo-buffer-info*)
+    (shampoo-clear-buffer (cadr buffer-info)))
+  (shampoo-clear-buffer "*shampoo-code*"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XML processing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -228,17 +246,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Response processing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun shampoo-process-aggregate-response (attrs fields buffer-info)
-  (destructuring-bind (buffer-name buffer-selector) buffer-info
-    (save-excursion
-      (set-buffer (get-buffer-create buffer-name))
+(defun shampoo-process-aggregate-response (attrs fields buffer-name)
+  (save-excursion
+    (set-buffer (get-buffer buffer-name))
+    (let ((buffer-read-only nil))
       (delete-region (point-min) (point-max))
       (dolist (item fields)
         (when (listp item)
           (insert (caddr item))
           (newline)))
       (goto-line 1)
-      (funcall buffer-selector))))
+      (shampoo-open-from-list))))
 
 (defun shampoo-process-source-response (attrs data)
   (save-excursion
@@ -270,7 +288,7 @@
   (let* ((attrs (shampoo-xml-attrs-hash (cadr response)))
          (type (gethash 'type attrs))
          (data (cddr response))
-         (buffer (cdr (assoc type *shampoo-buffer-info*)))
-         (handler (assoc type *shampoo-response-handlers*)))
-    (if handler (funcall (cadr handler) attrs data)
+         (buffer (cadr (assoc type *shampoo-buffer-info*)))
+         (handler (cadr (assoc type *shampoo-response-handlers*))))
+    (if handler (funcall handler attrs data)
       (shampoo-process-aggregate-response attrs data buffer))))
