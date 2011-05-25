@@ -78,7 +78,7 @@
   text-mode "Shampoo generic mode for list buffers"
   (setq buffer-read-only t)
   (make-local-variable 'set-current-item)
-  (make-local-variable 'produce-response)
+  (make-local-variable 'produce-request)
   (make-local-variable 'dependent-buffer))
 
 (defun shampoo-open-from-list ()
@@ -88,7 +88,7 @@
       (when (boundp 'set-current-item) (funcall set-current-item this-line))
       (process-send-string
        *shampoo*
-       (funcall produce-response this-line)))))
+       (funcall produce-request this-line)))))
 
 (defun shampoo-clear-buffer-with-dependent ()
   (let ((buffer-read-only nil))
@@ -108,7 +108,7 @@
 (define-derived-mode shampoo-namespaces-list-mode
   shampoo-list-mode "Shampoo namespaces"
   (setq set-current-item (lambda (x) (setq *shampoo-current-namespace* x)))
-  (setq produce-response
+  (setq produce-request
         (lambda (x)
           (shampoo-xml 'request `(:id 1 :type "Classes" :namespace ,x))))
   (setq dependent-buffer "*shampoo-classes*"))
@@ -116,7 +116,7 @@
 (define-derived-mode shampoo-classes-list-mode
   shampoo-list-mode "Shampoo classes"
   (setq set-current-item (lambda (x) (setq *shampoo-current-class* x)))
-  (setq produce-response
+  (setq produce-request
         (lambda (x)
           (shampoo-xml 'request
                        `(:id 1 :type "Categories"
@@ -126,7 +126,7 @@
 
 (define-derived-mode shampoo-cats-list-mode
   shampoo-list-mode "Shampoo categories"
-  (setq produce-response
+  (setq produce-request
         (lambda (x)
           (shampoo-xml 'request
                        `(:id 1 :type "Methods"
@@ -137,7 +137,7 @@
 
 (define-derived-mode shampoo-methods-list-mode
   shampoo-list-mode "Shampoo methods"
-  (setq produce-response
+  (setq produce-request
         (lambda (x)
           (shampoo-xml 'request
                        `(:id 1 :type "MethodSource"
@@ -150,7 +150,7 @@
   (when buffer-name
     (save-excursion
       (set-buffer (get-buffer buffer-name))
-      (lambda (a b) (funcall 'produce-response)))))
+      (lambda (a b) (funcall 'produce-request)))))
 
 
 (define-derived-mode shampoo-code-mode
