@@ -80,7 +80,9 @@
   (make-local-variable 'set-current-item)
   (make-local-variable 'produce-request)
   (make-local-variable 'dependent-buffer)
-  (make-local-variable 'update-source-buffer))
+  (make-local-variable 'update-source-buffer)
+  (make-local-variable 'force-update-buffer)
+  (setq force-update-buffer nil))
 
 (defun shampoo-open-from-list ()
   (interactive)
@@ -120,6 +122,7 @@
         (lambda (x)
           (shampoo-xml 'request `(:id 1 :type "Classes" :namespace ,x))))
   (setq dependent-buffer "*shampoo-classes*")
+  (setq force-update-buffer t)
   (setq update-source-buffer
         (lambda ()
           (let ((attrs (make-hash-table)))
@@ -309,7 +312,9 @@
           (newline)))
       (goto-line 1)
       (when (boundp 'dependent-buffer)
-        (shampoo-open-from-list)))))
+        (shampoo-open-from-list))
+      (when (and (boundp 'update-source-buffer) force-update-buffer)
+        (funcall update-source-buffer)))))
 
 (defun shampoo-process-source-response (attrs data)
   (save-excursion
@@ -328,7 +333,9 @@
              (join (lambda (a b) (concat a " " b)))
              (text (if nodes (reduce join (mapcar 'caddr nodes)) "")))
         (insert (concat "    " (car each) " '" text "'"))
-        (newline)))))
+        (newline)))
+    (insert (concat "    category: '" *shampoo-current-namespace* "'"))
+    (newline)))
 
 (defun shampoo-process-operational-response (attrs data)
   (let ((status (gethash 'status attrs)))
