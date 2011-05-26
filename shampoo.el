@@ -79,7 +79,8 @@
   (setq buffer-read-only t)
   (make-local-variable 'set-current-item)
   (make-local-variable 'produce-request)
-  (make-local-variable 'dependent-buffer))
+  (make-local-variable 'dependent-buffer)
+  (make-local-variable 'update-source-buffer))
 
 (defun shampoo-open-from-list ()
   (interactive)
@@ -101,8 +102,15 @@
     (set-buffer (get-buffer buffer-name))
     (shampoo-clear-buffer-with-dependent)))
 
+(defun shampoo-list-on-select ()
+  (interactive)
+  (when (boundp 'dependent-buffer)
+    (shampoo-open-from-list))
+  (when (boundp 'update-source-buffer)
+    (funcall update-source-buffer)))
+
 (define-key shampoo-list-mode-map
-  [return] 'shampoo-open-from-list)
+  [return] 'shampoo-list-on-select)
 
 
 (define-derived-mode shampoo-namespaces-list-mode
@@ -111,7 +119,13 @@
   (setq produce-request
         (lambda (x)
           (shampoo-xml 'request `(:id 1 :type "Classes" :namespace ,x))))
-  (setq dependent-buffer "*shampoo-classes*"))
+  (setq dependent-buffer "*shampoo-classes*")
+  (setq update-source-buffer
+        (lambda ()
+          (let ((attrs (make-hash-table)))
+            (puthash 'superclass "Object" attrs)
+            (puthash 'class "NameOfSubclass" attrs)
+          (shampoo-process-class-response attrs '())))))
 
 (define-derived-mode shampoo-classes-list-mode
   shampoo-list-mode "Shampoo classes"
@@ -122,7 +136,15 @@
                        `(:id 1 :type "Categories"
                         :namespace ,*shampoo-current-namespace*
                         :class ,x :side "instance"))))
-  (setq dependent-buffer "*shampoo-categories*"))
+  (setq dependent-buffer "*shampoo-categories*")
+  (setq update-source-buffer
+        (lambda ()
+          (process-send-string
+           *shampoo*
+           (shampoo-xml 'request
+                        `(:id 1 :type "Class"
+                          :namespace ,*shampoo-current-namespace*
+                          :class ,*shampoo-current-class* :side "instance"))))))
 
 (define-derived-mode shampoo-cats-list-mode
   shampoo-list-mode "Shampoo categories"
@@ -133,7 +155,17 @@
                          :namespace ,*shampoo-current-namespace*
                          :class ,*shampoo-current-class*
                          :category ,x :side "instance"))))
-  (setq dependent-buffer "*shampoo-methods*"))
+  (setq dependent-buffer "*shampoo-methods*")
+  (setq update-source-buffer
+        (lambda ()
+          (save-excursion
+            (set-buffer (get-buffer "*shampoo-code*"))
+            (erase-buffer)
+            (insert "messageSelectorAndArgumentNames [
+	\"comment stating purpose of message\"
+
+	| temporary variable names |
+	statements\n]")))))
 
 (define-derived-mode shampoo-methods-list-mode
   shampoo-list-mode "Shampoo methods"
@@ -144,7 +176,8 @@
                          :namespace ,*shampoo-current-namespace*
                          :class ,*shampoo-current-class*
                          :method ,(shampoo-escape-xml x)
-                         :side "instance")))))
+                         :side "instance"))))
+  (setq update-source-buffer 'shampoo-open-from-list))
 
 (defun shampoo-open-from-buffer-helper (buffer-name)
   (when buffer-name
@@ -275,7 +308,8 @@
           (insert (caddr item))
           (newline)))
       (goto-line 1)
-      (shampoo-open-from-list))))
+      (when (boundp 'dependent-buffer)
+        (shampoo-open-from-list)))))
 
 (defun shampoo-process-source-response (attrs data)
   (save-excursion
