@@ -10,6 +10,8 @@
 (defvar *shampoo-current-namespace* nil)
 (defvar *shampoo-current-class* nil)
 (defvar *shampoo-code-compile* nil)
+(defvar *shampoo-current-server* nil)
+(defvar *shampoo-current-port* nil)
 
 (defconst *shampoo-buffer-info*
   '(("Namespaces" "*shampoo-namespaces*")
@@ -92,8 +94,8 @@
   (make-local-variable 'update-source-buffer)
   (make-local-variable 'force-update-buffer)
   (make-local-variable 'code-compile)
-  (setq force-update-buffer nil)
-  (setq code-compile 'shampoo-compile-method))
+  (setq force-update-buffer nil
+        code-compile 'shampoo-compile-method))
 
 (defun shampoo-open-from-list ()
   (interactive)
@@ -129,39 +131,38 @@
 
 (define-derived-mode shampoo-namespaces-list-mode
   shampoo-list-mode "Shampoo namespaces"
-  (setq set-current-item (lambda (x) (setq *shampoo-current-namespace* x)))
-  (setq produce-request
-        (lambda (x)
-          (shampoo-xml 'request `(:id 1 :type "Classes" :namespace ,x))))
-  (setq dependent-buffer "*shampoo-classes*")
-  (setq force-update-buffer t)
-  (setq update-source-buffer
+  (setq set-current-item (lambda (x) (setq *shampoo-current-namespace* x))
+        produce-request (lambda (x)
+                          (shampoo-xml 'request `(:id 1 :type "Classes" :namespace ,x)))
+        dependent-buffer "*shampoo-classes*"
+        force-update-buffer t
+        update-source-buffer
         (lambda ()
           (let ((attrs (make-hash-table)))
             (puthash 'superclass "Object" attrs)
             (puthash 'class "NameOfSubclass" attrs)
-          (shampoo-process-class-response attrs '()))))
-  (setq code-compile 'shampoo-compile-class))
+            (shampoo-process-class-response attrs '())))
+        code-compile 'shampoo-compile-class))
 
 (define-derived-mode shampoo-classes-list-mode
   shampoo-list-mode "Shampoo classes"
-  (setq set-current-item (lambda (x) (setq *shampoo-current-class* x)))
-  (setq produce-request
+  (setq set-current-item (lambda (x) (setq *shampoo-current-class* x))
+        produce-request
         (lambda (x)
           (shampoo-xml 'request
                        `(:id 1 :type "Categories"
-                        :namespace ,*shampoo-current-namespace*
-                        :class ,x :side "instance"))))
-  (setq dependent-buffer "*shampoo-categories*")
-  (setq update-source-buffer
+                         :namespace ,*shampoo-current-namespace*
+                         :class ,x :side "instance")))
+        dependent-buffer "*shampoo-categories*"
+        update-source-buffer
         (lambda ()
           (process-send-string
            *shampoo*
            (shampoo-xml 'request
                         `(:id 1 :type "Class"
                           :namespace ,*shampoo-current-namespace*
-                          :class ,*shampoo-current-class* :side "instance")))))
-  (setq code-compile 'shampoo-compile-class))
+                          :class ,*shampoo-current-class* :side "instance"))))
+        code-compile 'shampoo-compile-class))
 
 (define-derived-mode shampoo-cats-list-mode
   shampoo-list-mode "Shampoo categories"
@@ -171,9 +172,9 @@
                        `(:id 1 :type "Methods"
                          :namespace ,*shampoo-current-namespace*
                          :class ,*shampoo-current-class*
-                         :category ,x :side "instance"))))
-  (setq dependent-buffer "*shampoo-methods*")
-  (setq update-source-buffer
+                         :category ,x :side "instance")))
+        dependent-buffer "*shampoo-methods*"
+        update-source-buffer
         (lambda ()
           (save-excursion
             (set-buffer (get-buffer "*shampoo-code*"))
@@ -193,8 +194,8 @@
                          :namespace ,*shampoo-current-namespace*
                          :class ,*shampoo-current-class*
                          :method ,(shampoo-escape-xml x)
-                         :side "instance"))))
-  (setq update-source-buffer 'shampoo-open-from-list))
+                         :side "instance")))
+        update-source-buffer 'shampoo-open-from-list))
 
 (defun shampoo-open-from-buffer-helper (buffer-name)
   (when buffer-name
@@ -257,6 +258,8 @@
   (if *shampoo* (shampoo-disconnect))
   (message "Shampoo: connecting to %s:%d..." server port)
   (let ((process (open-network-stream "shampoo" nil server port)))
+    (setq *shampoo-current-server* server
+          *shampoo-current-port* port)
     (message "Shampoo: connected successfully")
     (shampoo-create-layout)
     (shampoo-prepare-buffer)
@@ -385,12 +388,12 @@
     (goto-char (point-min))
     (if (re-search-forward (shampoo-build-regexp *class-pattern*) nil t)
         (make-shampoo-class-data
-         :super (match-string 1)
-         :name (match-string 2)
-         :instvars (shampoo-split-string-list (match-string 3))
+         :super     (match-string 1)
+         :name      (match-string 2)
+         :instvars  (shampoo-split-string-list (match-string 3))
          :classvars (shampoo-split-string-list (match-string 4))
          :pooldicts (shampoo-split-string-list (match-string 5))
-         :cat (match-string 6))
+         :cat       (match-string 6))
       (progn (message "Shampoo: syntax error")
              nil))))
 
