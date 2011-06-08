@@ -488,25 +488,26 @@
              nil))))
 
 (defun shampoo-compile-class ()
-  (if (eq *shampoo-current-side* :instance)
-      (let ((class-data (shampoo-parse-subclassing-message)))
-        (when class-data
-          (let* ((inst (mapcar (lambda (x) (shampoo-xml 'instvar  nil x)) (shampoo-class-data-instvars  class-data)))
-                 (clss (mapcar (lambda (x) (shampoo-xml 'classvar nil x)) (shampoo-class-data-classvars class-data)))
-                 (pool (mapcar (lambda (x) (shampoo-xml 'poolvar  nil x)) (shampoo-class-data-pooldicts class-data)))
-                 (flds (concatenate 'list inst clss pool)))
-            (process-send-string
-             *shampoo*
-             (shampoo-xml 'request
-                          `(:id 1 :type "CompileClass" :superspace "Smalltalk"
-                            :side ,(shampoo-side)
-                            :namespace ,*shampoo-current-namespace*
-                            :super ,(shampoo-class-data-super class-data)
-                            :class ,(shampoo-class-data-name class-data))
-                          nil flds)))))
-    (let ((class-side-data (shampoo-parse-class-side-message)))
+  (flet ((prod (sym) (lexical-let ((s sym)) (lambda (x) (shampoo-xml s nil x)))))
+    (if (eq *shampoo-current-side* :instance)
+        (let ((class-data (shampoo-parse-subclassing-message)))
+          (when class-data
+            (let* ((inst (mapcar (prod 'instvar)  (shampoo-class-data-instvars  class-data)))
+                   (clss (mapcar (prod 'classvar) (shampoo-class-data-classvars class-data)))
+                   (pool (mapcar (prod 'poolvar)  (shampoo-class-data-pooldicts class-data)))
+                   (flds (concatenate 'list inst clss pool)))
+              (process-send-string
+               *shampoo*
+               (shampoo-xml 'request
+                            `(:id 1 :type "CompileClass" :superspace "Smalltalk"
+                              :side ,(shampoo-side)
+                              :namespace ,*shampoo-current-namespace*
+                              :super ,(shampoo-class-data-super class-data)
+                              :class ,(shampoo-class-data-name class-data))
+                            nil flds)))))
+      (let ((class-side-data (shampoo-parse-class-side-message)))
         (when class-side-data
-          (let* ((inst (mapcar (lambda (x) (shampoo-xml 'instvar  nil x)) (shampoo-class-side-data-instvars  class-side-data))))
+          (let* ((inst (mapcar (prod 'instvar) (shampoo-class-side-data-instvars class-side-data))))
             (process-send-string
              *shampoo*
              (shampoo-xml 'request
@@ -514,7 +515,7 @@
                             :side ,(shampoo-side)
                             :namespace ,*shampoo-current-namespace*
                             :class ,(shampoo-class-side-data-name class-side-data))
-                          nil inst)))))))
+                          nil inst))))))))
 
 (defun shampoo-compile-method ()
   (interactive)
