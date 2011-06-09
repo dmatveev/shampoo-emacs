@@ -282,6 +282,10 @@
     (set-buffer (get-buffer-create "*shampoo-working-buffer*"))
     (erase-buffer)))
 
+(defun shampoo-sentinel (process event)
+  (when (eq (process-status process) 'closed)
+    (message "Shampoo: connection terminated")))
+
 (defun shampoo-connect (login-info)
   (interactive "sConnect to a Shampoo image: ")
   (with-temp-buffer
@@ -303,8 +307,9 @@
             (shampoo-create-layout)
             (shampoo-prepare-buffer)
             (shampoo-update-current-side)
-            (set-process-filter process 'shampoo-response-processor)
             (setq *shampoo* process)
+            (set-process-filter *shampoo* 'shampoo-response-processor)
+            (set-process-sentinel *shampoo* 'shampoo-sentinel)
             (process-send-string *shampoo*
                                  (shampoo-xml 'request '(:id 1 :type "Login") nil
                                               (list (shampoo-xml 'creds `(:login ,login :pass ,(md5 pass))))))
