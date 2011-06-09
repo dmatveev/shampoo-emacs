@@ -37,7 +37,8 @@
     ("OperationalResponse" . shampoo-process-operational-response)
     ("Class"               . shampoo-process-class-response)
     ("Info"                . shampoo-process-server-info-response)
-    ("PrintIt"             . shampoo-process-printit)))
+    ("PrintIt"             . shampoo-process-printit)
+    ("Echo"                . shampoo-process-transcript)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -334,6 +335,7 @@
                  (login (gethash :login matches))
                  (pass (read-passwd "Password: "))
                  (process (open-network-stream "shampoo" nil server port)))
+            (shampoo-disconnect)
             (setq *shampoo-current-server* server
                   *shampoo-current-port* port
                   *shampoo-current-user* login)
@@ -353,11 +355,12 @@
 
 (defun shampoo-disconnect ()
   (interactive)
-  (message "Shampoo: disconnected")
-  (delete-process *shampoo*)
-  (dolist (buffer-info *shampoo-buffer-info*)
-    (shampoo-clear-buffer (cdr buffer-info)))
-  (shampoo-clear-buffer "*shampoo-code*"))
+  (when *shampoo*
+    (message "Shampoo: disconnected")
+    (delete-process *shampoo*)
+    (dolist (buffer-info *shampoo-buffer-info*)
+      (shampoo-clear-buffer (cdr buffer-info)))
+    (shampoo-clear-buffer "*shampoo-code*")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XML processing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -419,8 +422,21 @@
 
 (defun shampoo-process-printit (attrs data)
   (save-excursion
+    ;; dirtiest hack ever
     (set-buffer *shampoo-last-active-workspace*)
     (insert (car data))))
+
+(defun shampoo-process-transcript (attrs data)
+  (let ((buffer (get-buffer "*shampoo-transcript*")))
+    (when (null buffer)
+      (let ((frame (make-frame)))
+        (raise-frame frame)
+        (setq buffer (get-buffer-create "*shampoo-transcript*"))
+        (set-window-buffer (frame-first-window frame) buffer)))
+    (save-excursion
+      (set-buffer buffer)
+      (goto-char (point-max))
+      (insert (car data)))))
 
 (defun shampoo-process-source-response (attrs data)
   (save-excursion
