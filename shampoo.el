@@ -15,6 +15,9 @@
 (defvar *shampoo-current-user* nil)
 (defvar *shampoo-current-port* nil)
 
+;; Fantastic kludge, drop it faster
+(defvar *shampoo-last-active-workspace* nil)
+
 (defconst *shampoo-buffer-info*
   '(("Namespaces" . "*shampoo-namespaces*")
     ("Classes"    . "*shampoo-classes*"   )
@@ -33,7 +36,8 @@
   '(("MethodSource"        . shampoo-process-source-response)
     ("OperationalResponse" . shampoo-process-operational-response)
     ("Class"               . shampoo-process-class-response)
-    ("Info"                . shampoo-process-server-info-response)))
+    ("Info"                . shampoo-process-server-info-response)
+    ("PrintIt"             . shampoo-process-printit)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -95,6 +99,36 @@
           (princ (concat "</" (symbol-name tagname) ">")))
       (princ " />"))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Tools ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-derived-mode shampoo-workspace-mode
+  text-mode "Shampoo workspace mode")
+
+(defmacro shampoo-mk-tool (name type)
+  `(defun ,name (from to)
+     (interactive "r")
+     (setq *shampoo-last-active-workspace* (current-buffer))
+     (process-send-string
+      *shampoo*
+      (shampoo-xml 'request `(:id 1 :type ,,type)
+                   (buffer-substring from to)))))
+
+(shampoo-mk-tool shampoo-do-it    "DoIt")
+(shampoo-mk-tool shampoo-print-it "PrintIt")
+
+(define-key shampoo-workspace-mode-map "\C-c\C-d" 'shampoo-do-it)
+(define-key shampoo-workspace-mode-map "\C-c\C-p" 'shampoo-print-it)
+
+(defun shampoo-open-workspace ()
+  (interactive)
+  (let ((frame (make-frame))
+        (buffer (generate-new-buffer "*shampoo-workspace*")))
+    (raise-frame frame)
+    (set-window-buffer (frame-first-window frame) buffer)
+    (save-excursion
+      (set-buffer buffer)
+      (shampoo-workspace-mode))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Modes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -382,6 +416,11 @@
                   "@" *shampoo-current-server*
                   ":" (number-to-string *shampoo-current-port*)
                   ", " (car data)))))
+
+(defun shampoo-process-printit (attrs data)
+  (save-excursion
+    (set-buffer *shampoo-last-active-workspace*)
+    (insert (car data))))
 
 (defun shampoo-process-source-response (attrs data)
   (save-excursion
