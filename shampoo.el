@@ -15,6 +15,9 @@
 (defvar *shampoo-current-user* nil)
 (defvar *shampoo-current-port* nil)
 
+;; Fantastic kludge, drop it faster
+(defvar *shampoo-last-active-workspace* nil)
+
 (defconst *shampoo-buffer-info*
   '(("Namespaces" . "*shampoo-namespaces*")
     ("Classes"    . "*shampoo-classes*"   )
@@ -33,7 +36,9 @@
   '(("MethodSource"        . shampoo-process-source-response)
     ("OperationalResponse" . shampoo-process-operational-response)
     ("Class"               . shampoo-process-class-response)
-    ("Info"                . shampoo-process-server-info-response)))
+    ("Info"                . shampoo-process-server-info-response)
+    ("PrintIt"             . shampoo-process-printit)
+    ("Echo"                . shampoo-process-transcript)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -95,6 +100,36 @@
           (princ (concat "</" (symbol-name tagname) ">")))
       (princ " />"))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Tools ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-derived-mode shampoo-workspace-mode
+  text-mode "Shampoo workspace mode")
+
+(defmacro shampoo-mk-tool (name type)
+  `(defun ,name (from to)
+     (interactive "r")
+     (setq *shampoo-last-active-workspace* (current-buffer))
+     (process-send-string
+      *shampoo*
+      (shampoo-xml 'request `(:id 1 :type ,,type)
+                   (buffer-substring from to)))))
+
+(shampoo-mk-tool shampoo-do-it    "DoIt")
+(shampoo-mk-tool shampoo-print-it "PrintIt")
+
+(define-key shampoo-workspace-mode-map "\C-c\C-d" 'shampoo-do-it)
+(define-key shampoo-workspace-mode-map "\C-c\C-p" 'shampoo-print-it)
+
+(defun shampoo-open-workspace ()
+  (interactive)
+  (let ((frame (make-frame))
+        (buffer (generate-new-buffer "*shampoo-workspace*")))
+    (raise-frame frame)
+    (set-window-buffer (frame-first-window frame) buffer)
+    (save-excursion
+      (set-buffer buffer)
+      (shampoo-workspace-mode))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Modes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -300,6 +335,7 @@
                  (login (gethash :login matches))
                  (pass (read-passwd "Password: "))
                  (process (open-network-stream "shampoo" nil server port)))
+            (shampoo-disconnect)
             (setq *shampoo-current-server* server
                   *shampoo-current-port* port
                   *shampoo-current-user* login)
@@ -319,11 +355,12 @@
 
 (defun shampoo-disconnect ()
   (interactive)
-  (message "Shampoo: disconnected")
-  (delete-process *shampoo*)
-  (dolist (buffer-info *shampoo-buffer-info*)
-    (shampoo-clear-buffer (cdr buffer-info)))
-  (shampoo-clear-buffer "*shampoo-code*"))
+  (when *shampoo*
+    (message "Shampoo: disconnected")
+    (delete-process *shampoo*)
+    (dolist (buffer-info *shampoo-buffer-info*)
+      (shampoo-clear-buffer (cdr buffer-info)))
+    (shampoo-clear-buffer "*shampoo-code*")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XML processing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -382,6 +419,24 @@
                   "@" *shampoo-current-server*
                   ":" (number-to-string *shampoo-current-port*)
                   ", " (car data)))))
+
+(defun shampoo-process-printit (attrs data)
+  (save-excursion
+    ;; dirtiest hack ever
+    (set-buffer *shampoo-last-active-workspace*)
+    (insert (car data))))
+
+(defun shampoo-process-transcript (attrs data)
+  (let ((buffer (get-buffer "*shampoo-transcript*")))
+    (when (null buffer)
+      (let ((frame (make-frame)))
+        (raise-frame frame)
+        (setq buffer (get-buffer-create "*shampoo-transcript*"))
+        (set-window-buffer (frame-first-window frame) buffer)))
+    (save-excursion
+      (set-buffer buffer)
+      (goto-char (point-max))
+      (insert (car data)))))
 
 (defun shampoo-process-source-response (attrs data)
   (save-excursion
