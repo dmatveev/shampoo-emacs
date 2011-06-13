@@ -14,6 +14,8 @@
 (defvar *shampoo-current-server* nil)
 (defvar *shampoo-current-user* nil)
 (defvar *shampoo-current-port* nil)
+(defvar *shampoo-current-smalltalk* nil)
+(defvar *shampoo-workspaces* nil)
 
 ;; Fantastic kludge, drop it faster
 (defvar *shampoo-last-active-workspace* nil)
@@ -125,11 +127,13 @@
   (interactive)
   (let ((frame (make-frame))
         (buffer (generate-new-buffer "*shampoo-workspace*")))
+    (pushnew buffer *shampoo-workspaces*)
     (raise-frame frame)
     (set-window-buffer (frame-first-window frame) buffer)
     (save-excursion
       (set-buffer buffer)
-      (shampoo-workspace-mode))))
+      (shampoo-workspace-mode)
+      (setq header-line-format (shampoo-header)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Modes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -418,14 +422,27 @@
       (when (and (boundp 'update-source-buffer) force-update-buffer)
         (funcall update-source-buffer)))))
 
-(defun shampoo-process-server-info-response (attrs data)
+(defun shampoo-header ()
+  (concat *shampoo-current-user*
+          "@" *shampoo-current-server*
+          ":" (number-to-string *shampoo-current-port*)
+          ", " *shampoo-current-smalltalk*))
+
+(defun shampoo-update-header-at (buffer string)
   (save-excursion
-    (set-buffer (get-buffer-create "*shampoo-code*"))
-    (setq header-line-format
-          (concat *shampoo-current-user*
-                  "@" *shampoo-current-server*
-                  ":" (number-to-string *shampoo-current-port*)
-                  ", " (car data)))))
+    (set-buffer buffer)
+    (setq header-line-format string)))
+
+(defun shampoo-update-headers ()
+  (let ((header (shampoo-header)))
+    (dolist (each *shampoo-workspaces*)
+      (when (buffer-live-p each)
+        (shampoo-update-header-at each header)))
+    (shampoo-update-header-at (get-buffer-create "*shampoo-code*") header)))
+
+(defun shampoo-process-server-info-response (attrs data)
+  (setq *shampoo-current-smalltalk* (car data))
+  (shampoo-update-headers))
 
 (defun shampoo-process-printit (attrs data)
   (save-excursion
@@ -442,6 +459,7 @@
         (set-window-buffer (frame-first-window frame) buffer)))
     (save-excursion
       (set-buffer buffer)
+      (setq header-line-format (shampoo-header))
       (goto-char (point-max))
       (insert (car data)))))
 
