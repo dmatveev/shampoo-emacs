@@ -138,6 +138,7 @@
   (setq buffer-read-only t)
   (make-local-variable 'set-current-item)
   (make-local-variable 'produce-request)
+  (make-local-variable 'pre-insert-hook)
   (make-local-variable 'dependent-buffer)
   (make-local-variable 'update-source-buffer)
   (make-local-variable 'force-update-buffer)
@@ -247,7 +248,11 @@
 	\"comment stating purpose of message\"
 
 	| temporary variable names |
-	statements\n]")))))
+	statements\n]")))
+        pre-insert-hook
+        (lambda ()
+          (insert "*")
+          (newline))))
 
 (define-derived-mode shampoo-methods-list-mode
   shampoo-list-mode "Shampoo methods"
@@ -401,6 +406,8 @@
     (set-buffer (get-buffer buffer-name))
     (let ((buffer-read-only nil))
       (shampoo-clear-buffer-with-dependent)
+      (when (boundp 'pre-insert-hook)
+        (funcall pre-insert-hook))
       (dolist (item fields)
         (when (listp item)
           (insert (caddr item))
@@ -490,7 +497,7 @@
         :sp "category:"              :sp "'" :Wd "'"))
 
 (defconst *login-pattern*
-  '(:Wd "@" :Wd ":" :D))
+  '(:Wd "@" :Wa ":" :D))
 
 (defconst *class-side-pattern*
   '(:Wd :sp "class" :sp "instanceVariableNames:" :sp "'" :Ws "'"))
@@ -498,6 +505,7 @@
 (defun shampoo-build-regexp (pattern)
   (let* ((tokens '((:Wd "\\([A-z]+\\)")
                    (:Ws "\\([A-z 0-9]*\\)")
+                   (:Wa "\\([A-z\.0-9]*\\)")
                    (:D  "\\([0-9]*\\)")
                    (:sp "[\s\t\n]*"))))
     (reduce 'concat
