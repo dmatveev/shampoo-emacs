@@ -40,7 +40,8 @@
     ("Class"               . shampoo-process-class-response)
     ("Info"                . shampoo-process-server-info-response)
     ("PrintIt"             . shampoo-process-printit)
-    ("Echo"                . shampoo-process-transcript)))
+    ("Echo"                . shampoo-process-transcript)
+    ("Magic"               . shampoo-do-auth)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -342,7 +343,6 @@
           (let* ((server (gethash :server matches))
                  (port (string-to-number (gethash :port matches)))
                  (login (gethash :login matches))
-                 (pass (read-passwd "Password: "))
                  (process (open-network-stream "shampoo" nil server port)))
             (shampoo-disconnect)
             (setq *shampoo-current-server* server
@@ -355,11 +355,6 @@
             (setq *shampoo* process)
             (set-process-filter *shampoo* 'shampoo-response-processor)
             (set-process-sentinel *shampoo* 'shampoo-sentinel)
-            (process-send-string *shampoo*
-                                 (shampoo-xml 'request '(:id 1 :type "Login") nil
-                                              (list (shampoo-xml 'creds `(:login ,login :pass ,(md5 pass))))))
-            (process-send-string *shampoo*
-                                 (shampoo-xml 'request '(:id 1 :type "Namespaces")))
             process)))))
 
 (defun shampoo-disconnect ()
@@ -615,3 +610,16 @@
                     :class ,*shampoo-current-class*
                     :side ,(shampoo-side))
                   (buffer-substring (point-min) (point-max))))))
+
+(defun shampoo-do-auth (atts data)
+  (let ((pass (read-passwd "Password: ")))
+    (process-send-string
+     *shampoo*
+     (shampoo-xml 'request '(:id 1 :type "Login") nil
+                  (list (shampoo-xml 'creds
+                                     `(:login ,*shampoo-current-user*
+                                       :magic ,(md5 (concat (car data)
+                                                            (md5 pass))))))))
+    (process-send-string
+     *shampoo*
+     (shampoo-xml 'request '(:id 1 :type "Namespaces")))))
