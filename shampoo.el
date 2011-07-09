@@ -66,6 +66,14 @@
 (defun shampoo-side ()
   (shampoo-side-sym-as-param *shampoo-current-side*))
 
+(defmacro when-shampoo-alive (instance &rest body)
+  `(when (and (processp ,instance)
+              (not (eql (process-status ,instance) 'closed)))
+     ,@body))
+
+(defmacro when-shampoo-alive-and (clause instance body)
+  `(when ,clause (when-shampoo-alive ,instance ,body)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XML ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -193,7 +201,8 @@
   (setq *shampoo-code-compile* code-compile)
   (when (boundp 'dependent-buffer)
     (shampoo-open-from-list))
-  (when (boundp 'update-source-buffer)
+  (when-shampoo-alive-and (boundp 'update-source-buffer)
+    *shampoo*
     (funcall update-source-buffer)))
 
 (define-key shampoo-list-mode-map [return]   'shampoo-list-on-select)
