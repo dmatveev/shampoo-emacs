@@ -44,6 +44,7 @@
     ("Magic"               . shampoo-do-auth)))
 
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun shampoo-this-line ()
@@ -145,6 +146,11 @@
       (setq header-line-format (shampoo-header)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Modes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-derived-mode shampoo-working-mode
+  text-mode "Shampoo mode for the working buffer"
+  (make-local-variable 'reader)
+  (make-local-variable 'caret))
 
 (define-derived-mode shampoo-list-mode
   text-mode "Shampoo generic mode for list buffers"
@@ -334,7 +340,10 @@
 (defun shampoo-prepare-buffer ()
   (save-excursion
     (set-buffer (get-buffer-create "*shampoo-working-buffer*"))
-    (erase-buffer)))
+    (shampoo-working-mode)
+    (erase-buffer)
+    (setq reader (make-shampoo-xml-reader :state :init :depth 0))
+    (setq caret (point-min))))
 
 (defun shampoo-sentinel (process event)
   (when (eq (process-status process) 'closed)
@@ -378,10 +387,152 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XML processing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun shampoo-is-complete-response ()
+(defstruct shampoo-xml-reader
+  state
+  depth
+  last)
+
+(defun shampoo-first-position-in-buffer (str)
   (save-excursion
     (goto-char (point-min))
-    (search-forward "</response>" nil t)))
+    (search-forward str nil t)))
+
+;;                            **********
+;;                            *  INIT  *
+;;                            **********
+;;                                |
+;;                                |   .-------------------------.
+;;                        got '<' |   |                         |
+;;                                |   |                         |
+;;  got '>',                      V   V               got '/>', |
+;;  depth++                +------------+             depth--   |
+;;           .-------------| tag opened |-----------.   [*]     |
+;;           |             +------------+           |           |
+;;           |                 ^    ^               |           |
+;;           V                 |    |               V           |
+;;    +-------------+          |    |        +------------+     |
+;;    | node opened |----------'    '--------| tag closed |     |
+;;    +-------------+  got '<'     got '<'   +------------+     |
+;;           |                                      |           |
+;;           |                                      |           |
+;;  got '</' |             +--------------+         |           |
+;;           '------------>| node closing |<--------'           |
+;;                         +--------------+    got '</'         |
+;;                            ^   |                             |
+;;            got '</'        |   | got '>'                     |
+;;          .-----------------'   |                             |
+;;          |                     V                             |
+;;          |              +-------------+                      |
+;;          |     depth--  | node closed |                      |
+;;          |     [*]      +-------------+                      |
+;;          |                   |   |                           |
+;;          |                   |   |           got '<'         |
+;;          '-------------------'   '---------------------------'
+;;
+;; -----------------------------
+;; * - If depth == 0, return
+
+(defun shampoo-log (&rest args)
+  (save-excursion
+    (set-buffer (get-buffer-create "*shampoo-log*"))
+    (insert (apply 'format args))
+    (newline)))
+
+(defun shampoo-xml-reader-switch (fsm state)
+  (let ((current (shampoo-xml-reader-state fsm))
+        (depth (shampoo-xml-reader-depth fsm)))
+    (if (not (eq current state))
+        (progn
+          (setf (shampoo-xml-reader-state fsm)
+                state)
+          (incf (shampoo-xml-reader-depth fsm)
+                (cond ((eq state :tag-opened) 1)
+                      ((eq state :node-closed) -1)
+                      ((eq state :tag-closed)  -1)
+                      (0)))))))
+
+(defun shampoo-xml-reader-is-complete (fsm)
+  (let ((state (shampoo-xml-reader-state fsm))
+        (depth (shampoo-xml-reader-depth fsm)))
+    (and (eq depth 0)
+         (or (eq state :node-closed)
+             (eq state :tag-closed)))))
+
+(defun shampoo-xml-is-< (char next-char)
+  (and (eq char ?<)
+       (not (eq next-char ?/))))
+
+(defun shampoo-xml-is-> (char)
+  (eq char ?>))
+
+(defun shampoo-xml-is-/> (char next-char)
+  (and (eq char ?/)
+       (eq next-char ?>)))
+
+(defun shampoo-xml-is-</ (char next-char)
+  (and (eq char ?<)
+       (eq next-char ?/)))
+
+(defun shampoo-xml-reader-process (fsm char next-char)
+  (let* ((state (shampoo-xml-reader-state fsm))
+         (next-state
+          (cond ((eq state :init)
+                 (if (shampoo-xml-is-< char next-char)
+                     :tag-opened))
+
+                ((eq state :tag-opened)
+                 (cond ((shampoo-xml-is-> char)
+                        :node-opened)
+                       ((shampoo-xml-is-/> char next-char)
+                        :tag-closed)))
+
+                ((eq state :tag-closed)
+                 (cond ((shampoo-xml-is-</ char next-char)
+                        :node-closing)
+                       ((shampoo-xml-is-< char next-char)
+                        :tag-opened)))
+                
+                ((eq state :node-opened)
+                 (cond ((shampoo-xml-is-< char next-char)
+                        :tag-opened)
+                       ((shampoo-xml-is-</ char next-char)
+                        :node-closing)))
+
+                ((eq state :node-closing)
+                 (if (shampoo-xml-is-> char)
+                     :node-closed))
+
+                ((eq state :node-closed)
+                 (cond ((shampoo-xml-is-< char next-char)
+                        :tag-opened)
+                       ((shampoo-xml-is-</ char next-char)
+                        :node-closing)))
+                
+                (nil))))
+    (setf (shampoo-xml-reader-last fsm) `(,char ,next-char))
+    (if next-state
+        (shampoo-xml-reader-switch fsm next-state))))
+
+(defun shampoo-is-complete-response ()
+  (save-excursion
+    (goto-char caret)
+    (let ((this-char (char-after))
+          (next-char (char-after 2)))
+      (while (and (not (shampoo-xml-reader-is-complete reader))
+                  this-char)
+        (shampoo-xml-reader-process reader this-char next-char)
+        (forward-char)
+        (setq this-char (char-after))
+        (setq next-char (char-after (1+ (point)))))
+      (setq caret (point))
+      (if (shampoo-xml-reader-is-complete reader)
+          (let ((last (shampoo-xml-reader-last reader)))
+            (setq reader (make-shampoo-xml-reader :state :init :depth 0))
+            (setq caret (point-min))
+            (+ (point)
+               (destructuring-bind (first second) last
+                 (if (shampoo-xml-is-/> first second) 1 0))))
+          nil))))
 
 (defun shampoo-response-processor (proc string)
   (save-excursion
@@ -418,8 +569,11 @@
         (funcall pre-insert-hook))
       (dolist (item fields)
         (when (listp item)
-          (insert (caddr item))
-          (newline)))
+          (let ((text (caddr item)))
+            (if text
+                (progn
+                  (insert text)
+                  (newline))))))
       (goto-line 1)
       (when (boundp 'dependent-buffer)
         (shampoo-open-from-list))
@@ -508,7 +662,8 @@
          (data (cddr response))
          (buffer (cdr (assoc type *shampoo-buffer-info*)))
          (handler (cdr (assoc type *shampoo-response-handlers*))))
-    (if handler (funcall handler attrs data)
+    (if handler
+        (funcall handler attrs data)
       (shampoo-process-aggregate-response attrs data buffer))))
 
 (defconst *class-pattern*
