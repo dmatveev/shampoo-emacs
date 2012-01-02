@@ -9,6 +9,7 @@
 (defvar *shampoo* nil)
 (defvar *shampoo-current-namespace* nil)
 (defvar *shampoo-current-class* nil)
+(defvar *shampoo-current-method* nil)
 (defvar *shampoo-code-compile* nil)
 (defvar *shampoo-current-side* :instance)
 (defvar *shampoo-current-server* nil)
@@ -263,6 +264,7 @@
         (lambda ()
           (save-excursion
             (set-buffer (get-buffer "*shampoo-code*"))
+            (setq header-line-format (shampoo-header))
             (erase-buffer)
             (insert "messageSelectorAndArgumentNames [
 	\"comment stating purpose of message\"
@@ -276,7 +278,8 @@
 
 (define-derived-mode shampoo-methods-list-mode
   shampoo-list-mode "Shampoo methods"
-  (setq produce-request
+  (setq set-current-item (lambda (x) (setq *shampoo-current-method* x))
+        produce-request
         (lambda (x)
           (shampoo-xml 'request
                        `(:id 1 :type "MethodSource"
@@ -624,6 +627,13 @@
 (defun shampoo-process-source-response (attrs data)
   (save-excursion
     (set-buffer (get-buffer-create "*shampoo-code*"))
+    (setq header-line-format
+          (format "%s    %s>>%s"
+                  (shampoo-header)
+                  (if (eq *shampoo-current-side* :instance)
+                      *shampoo-current-class*
+                    (concat *shampoo-current-class* " class"))
+                  *shampoo-current-method*))
     (erase-buffer)
     (insert (car data))))
 
@@ -631,6 +641,7 @@
   (save-excursion
     (set-buffer (get-buffer-create "*shampoo-code*"))
     (erase-buffer)
+    (setq header-line-format (shampoo-header))
     (insert
      (if (eq *shampoo-current-side* :instance)
          (concat (gethash 'superclass attrs) " subclass: #" (gethash 'class attrs))
