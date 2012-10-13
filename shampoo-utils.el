@@ -21,6 +21,11 @@
 (defun shampoo-this-line ()
   (buffer-substring (line-beginning-position) (line-end-position)))
 
+(defun shampoo-next-line ()
+  (save-excursion
+    (next-line)
+    (shampoo-this-line)))
+
 (defun shampoo-buffer-num-lines ()
   (count-lines (point-min) (point-max)))
 

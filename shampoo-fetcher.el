@@ -54,24 +54,22 @@
     str))
 
 (defun shampoo-fetcher-fsm-process-header (fsm)
-  (let ((this-str (shampoo-uncr (shampoo-this-line))))
-    (save-excursion
-      (next-line)
-      (let* ((next-str (shampoo-uncr (shampoo-this-line)))
-             (maybe-header (concat this-str "\r\n" next-str "\r\n"))
-             (pattern '("Content-Length:" :sp :D :cr :lf :cr :lf))
-             (parsed (shampoo-regexp-parse maybe-header pattern)))
-        ; (message "Trying to parse \"%s\"" maybe-header)
-        (if parsed
-            (progn
-              ; (message "Parsed ok!")
-              (let ((len (string-to-number
-                          (shampoo-regexp-extract 0 parsed))))
-                (beginning-of-buffer)
-                (loop repeat 2 do (shampoo-delete-this-line))
-                (shampoo-fetcher-fsm-switch-to-payload fsm len)))
-          (erase-buffer)))))
-  nil)
+  (let* ((this-str (shampoo-uncr (shampoo-this-line)))
+         (next-str (shampoo-uncr (shampoo-next-line)))
+         (maybe-header (concat this-str "\r\n" next-str "\r\n"))
+         (pattern '("Content-Length:" :sp :D :cr :lf :cr :lf))
+         (parsed (shampoo-regexp-parse maybe-header pattern)))
+    (message "Trying to parse \"%s\"" maybe-header)
+    (if parsed
+        (save-excursion
+          (message "Parsed ok!")
+          (let ((len
+                 (string-to-number (shampoo-regexp-extract 0 parsed))))
+            (beginning-of-buffer)
+            (loop repeat 2 do (shampoo-delete-this-line))
+            (shampoo-fetcher-fsm-switch-to-payload fsm len)))
+      (erase-buffer)))
+    nil)
 
 (defun shampoo-fetcher-fsm-process-payload (fsm)
   (let* ((len (shampoo-fetcher-fsm-bytes-awaiting fsm))
