@@ -43,15 +43,25 @@
           ((eq state :payload)
            (shampoo-fetcher-can-process-payload fsm)))))
 
+(defun shampoo-crp (str)
+  (let ((l (length str)))
+    (and (>= l 1)
+         (equal "\r" (substring str (- l 1))))))
+
+(defun shampoo-uncr (str)
+  (if (shampoo-crp str)
+      (substring str 0 (- (length str) 1))
+    str))
+
 (defun shampoo-fetcher-fsm-process-header (fsm)
-  (let ((this-str (shampoo-this-line)))
+  (let ((this-str (shampoo-uncr (shampoo-this-line))))
     (save-excursion
       (next-line)
-      (let* ((next-str (shampoo-this-line))
+      (let* ((next-str (shampoo-uncr (shampoo-this-line)))
              (maybe-header (concat this-str "\r\n" next-str "\r\n"))
              (pattern '("Content-Length:" :sp :D :cr :lf :cr :lf))
              (parsed (shampoo-regexp-parse maybe-header pattern)))
-        ; (message "Trying to parse %s" maybe-header)
+        ; (message "Trying to parse \"%s\"" maybe-header)
         (if parsed
             (progn
               ; (message "Parsed ok!")
