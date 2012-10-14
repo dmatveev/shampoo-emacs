@@ -6,6 +6,7 @@
 ;; please refer to the LICENSE file for details.
 
 (require 'cl)
+(require 'shampoo-state)
 
 (define-derived-mode shampoo-working-mode
   text-mode "Shampoo mode for the working buffer"
@@ -14,7 +15,6 @@
 (define-derived-mode shampoo-list-mode
   text-mode "Shampoo generic mode for list buffers"
   (setq buffer-read-only t)
-  (make-local-variable 'send-closure)
   (make-local-variable 'set-current-item)
   (make-local-variable 'produce-request)
   (make-local-variable 'pre-insert-hook)
@@ -25,18 +25,11 @@
   (setq force-update-buffer nil
         code-compile 'shampoo-compile-method))
 
-(defun shampoo-update-send-closures (closure)
-  (dolist (bufname (mapcar 'cdr *shampoo-buffer-info*))
-    (save-excursion
-      (set-buffer (get-buffer bufname))
-      (setq send-closure closure))))
-
 (defun shampoo-update-current-side ()
   (save-excursion
     (set-buffer (get-buffer "*shampoo-categories*"))
     (setq header-line-format
-          (concat (shampoo-side-sym-as-param *shampoo-current-side*)
-                  " side"))))
+          (format "%s side" (shampoo-side)))))
 
 (defun shampoo-open-from-list ()
   (interactive)
@@ -44,18 +37,19 @@
     (when (not (equal this-line ""))
       (when (boundp 'set-current-item)
         (funcall set-current-item this-line))
-      (funcall send-closure
+      (shampoo-send-message
        (funcall produce-request this-line)))))
 
 (defun shampoo-toggle-side ()
   (interactive)
-  (setq *shampoo-current-side*
-        (if (eq *shampoo-current-side* :instance) :class :instance))
+  (with-~shampoo~
+   (let ((current-side (shampoo-current-side ~shampoo~)))
+     (setf (shampoo-current-side ~shampo~)
+           (if (eq current-side :instance) :class :instance))))
   (shampoo-update-current-side)
   (save-excursion
     (set-buffer (get-buffer "*shampoo-classes*"))
-    (funcall
-     send-closure
+    (shampoo-send-message
      (funcall produce-request (shampoo-this-line)))
     (funcall update-source-buffer)))
 
@@ -82,7 +76,8 @@
 (define-key shampoo-list-mode-map "\C-c\C-t" 'shampoo-toggle-side)
 
 (defun shampoo-namespaces-set-current-item (item)
-  (setq *shampoo-current-namespace* item))
+  (with-~shampoo~
+   (setf (shampoo-current-namespace ~shampoo~) item)))
 
 (defun shampoo-namespaces-produce-request (item)
   (shampoo-make-classes-rq :id 1 :ns item))
@@ -104,21 +99,22 @@
         code-compile         'shampoo-compile-class))
 
 (defun shampoo-classes-set-current-item (item)
-  (setq *shampoo-current-class* item))
+  (with-~shampoo~
+   (setf (shampoo-current-class ~shampoo~) item)))
 
 (defun shampoo-classes-produce-request (item)
   (shampoo-make-cats-rq
    :id 1
-   :ns *shampoo-current-namespace*
+   :ns (shampoo-get-current-namespace)
    :class item
    :side (shampoo-side)))
 
 (defun shampoo-classes-update-source-buffer ()
-  (funcall send-closure
+  (shampoo-send-message
    (shampoo-make-class-rq
     :id 1
-    :ns *shampoo-current-namespace*
-    :class *shampoo-current-class*
+    :ns (shampoo-get-current-namespace)
+    :class (shampoo-get-current-class)
     :side (shampoo-side))))
 
 (define-derived-mode shampoo-classes-list-mode
@@ -132,21 +128,20 @@
 (defun shampoo-cats-produce-request (item)
   (shampoo-make-methods-rq
    :id 1
-   :ns *shampoo-current-namespace*
-   :class *shampoo-current-class*
+   :ns (shampoo-get-current-namespace)
+   :class (shampoo-get-current-class)
    :category item
    :side (shampoo-side)))
 
 (defun shampoo-cats-update-source-buffer ()
   (save-excursion
     (set-buffer (get-buffer "*shampoo-code*"))
-    (setq header-line-format (shampoo-header))
+    (setq header-line-format (shampoo-make-header))
     (erase-buffer)
-    (insert "messageSelectorAndArgumentNames [
-	\"comment stating purpose of message\"
-
-	| temporary variable names |
-	statements\n]")))
+    (with-~shampoo~
+     (insert
+      (shampoo-dialect-specific-message-template
+       (shampoo-current-smalltalk ~shampoo~))))))
 
 (defun shampoo-cats-pre-insert-hook ()
   (insert "*")
@@ -160,13 +155,14 @@
         pre-insert-hook      'shampoo-cats-pre-insert-hook))
 
 (defun shampoo-methods-set-current-item (item)
-  (setq *shampoo-current-method* item))  
+  (with-~shampoo~
+   (setf (shampoo-current-method ~shampoo~) item)))
 
 (defun shampoo-methods-produce-request (item)
   (shampoo-make-method-rq
    :id 1
-   :ns *shampoo-current-namespace*
-   :class *shampoo-current-class*
+   :ns (shampoo-get-current-namespace)
+   :class (shampoo-get-current-class)
    :method item
    :side (shampoo-side)))
 

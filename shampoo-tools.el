@@ -20,12 +20,11 @@
   `(defun ,name (from to)
      (interactive "r")
      (setq *shampoo-last-active-workspace* (current-buffer))
-     (let ((~connection~ (shampoo-get-current-connection)))
-       (shampoo-send-message
-        (shampoo-make-eval-rq
-         :id 1
-         :type ,type
-         :code (buffer-substring from to))))))
+     (shampoo-send-message
+      (shampoo-make-eval-rq
+       :id 1
+       :type ,type
+       :code (buffer-substring from to)))))
 
 (shampoo-mk-tool shampoo-do-it    "DoIt")
 (shampoo-mk-tool shampoo-print-it "PrintIt")
@@ -43,7 +42,7 @@
     (save-excursion
       (set-buffer buffer)
       (shampoo-workspace-mode)
-      (setq header-line-format (shampoo-header)))))
+      (setq header-line-format (shampoo-make-header)))))
 
 (defmacro do-workspaces (evar &rest body)
   (destructuring-bind (var) evar

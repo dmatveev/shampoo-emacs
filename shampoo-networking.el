@@ -11,32 +11,29 @@
 (defstruct shampoo-connection
   process)
 
-;; TODO introduce a macro
 (defun shampoo-net-sentinel (connection user-down-fcn)
   (lexical-let ((c connection)
                 (f user-down-fcn))
     (lambda (process event)
-      (let ((~connection~ c))
-        (when (shampoo-net-is-alive c)
-          (funcall f))))))
+      (when (shampoo-net-is-alive c)
+        (funcall f)))))
 
-;; TODO introduce a macro
 (defun shampoo-net-receiver (connection user-recv-fcn)
-  (lexical-let ((c connection)
-                (f user-recv-fcn))
+  (lexical-let ((f user-recv-fcn))
     (lambda (process str)
-      (let ((~connection~ c))
-        (funcall f str)))))
+      (funcall f str))))
 
 (defun* shampoo-connection-setup 
     (connection &key on-receive on-shutdown)
   (let ((p (shampoo-connection-process connection)))
     (when on-receive
-      (set-process-filter p (shampoo-net-receiver connection
-                                                  on-receive)))
+      (set-process-filter
+       p
+       (shampoo-net-receiver connection on-receive)))
     (when on-shutdown
-      (set-process-sentinel p (shampoo-net-sentinel connection
-                                                    on-shutdown)))))
+      (set-process-sentinel
+       p
+       (shampoo-net-sentinel connection on-shutdown)))))
 
 (defun shampoo-net-connect (connect-info)
   (make-shampoo-connection

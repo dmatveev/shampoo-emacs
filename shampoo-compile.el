@@ -7,6 +7,7 @@
 
 (require 'cl)
 (require 'shampoo-dict)
+(require 'shampoo-state)
 (require 'shampoo-regexp)
 (require 'shampoo-utils)
 (require 'shampoo-response)
@@ -51,7 +52,7 @@
       :id 1
       :ss "Smalltalk"
       :side (shampoo-side)
-      :ns *shampoo-current-namespace*
+      :ns (shampoo-get-current-namespace)
       :desc class-data))))
   
 (defun shampoo-parse-class-side-message (code)
@@ -68,29 +69,27 @@
       :id 1
       :ss "Smalltalk"
       :side (shampoo-side)
-      :ns *shampoo-current-namespace*
+      :ns (shampoo-get-current-namespace)
       :desc class-data))))
 
 (defun shampoo-compile-class ()
   (interactive)
   (let ((code (shampoo-buffer-contents "*shampoo-code*")))
-    (with-shampoo-connection
-     (if (shampoo-side-is :instance)
-         (shampoo-compile-class-instance
-          (shampoo-parse-subclassing-message code))
-       (shampoo-compile-class-class
-        (shampoo-parse-class-side-message code))))))
+    (if (shampoo-side-is :instance)
+        (shampoo-compile-class-instance
+         (shampoo-parse-subclassing-message code))
+      (shampoo-compile-class-class
+       (shampoo-parse-class-side-message code)))))
 
 (defun shampoo-compile-method ()
   (interactive)
-  (with-shampoo-connection
-   (shampoo-send-message
-    (shampoo-make-compile-method-rq
-     :id 1
-     :ns *shampoo-current-namespace*
-     :class *shampoo-current-class*
-     :side (shampoo-side)
-     :code (shampoo-buffer-contents "*shampoo-code*")))))
+  (shampoo-send-message
+   (shampoo-make-compile-method-rq
+    :id 1
+    :ns (shampoo-get-current-namespace)
+    :class (shampoo-get-current-class)
+    :side (shampoo-side)
+    :code (shampoo-buffer-contents "*shampoo-code*"))))
 
 (defun shampoo-print-class-message-from-response (template resp)
   (dolist (each template)
@@ -109,12 +108,12 @@
   (shampoo-print-class-message-from-response
    *shampoo-class-template*
    resp)
-  ;; TODO *shampoo-current-namespace* may differ from the
+  ;; TODO (shampoo-get-current-namespace) may differ from the
   ;; actual class namespace, i.e. when user has switched to
   ;; other namespace before the response arrived. This thing
   ;; should be fixed.
   (insert
-   (format "    category: '%s'" *shampoo-current-namespace*)))
+   (format "    category: '%s'" (shampoo-get-current-namespace))))
 
 (defun shampoo-print-class-class-from-response (resp)
   (insert (format "%s class" (shampoo-response-attr 'class resp)))
@@ -127,7 +126,7 @@
   (save-excursion
     (set-buffer (get-buffer-create "*shampoo-code*"))
     (erase-buffer)
-    (setq header-line-format (shampoo-header))
+    (setq header-line-format (shampoo-make-header))
     (if (shampoo-side-is :instance)
         (shampoo-print-class-instance-from-response resp)
       (shampoo-print-class-class-from-response resp))))

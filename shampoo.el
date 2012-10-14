@@ -8,26 +8,18 @@
 
 (require 'shampoo-auth)
 (require 'shampoo-compile)
+(require 'shampoo-dialect)
 (require 'shampoo-fetcher)
 (require 'shampoo-layout)
 (require 'shampoo-modes)
 (require 'shampoo-networking)
 (require 'shampoo-requests)
 (require 'shampoo-response)
+(require 'shampoo-state)
 (require 'shampoo-tools)
 (require 'shampoo-utils)
 
-;; Globals
-;; TODO refactor the state
-(defvar *shampoo-current-connection-info* nil)
-(defvar *shampoo-connection-closure* nil)
-
-(defvar *shampoo-current-namespace* nil)
-(defvar *shampoo-current-class* nil)
-(defvar *shampoo-current-method* nil)
 (defvar *shampoo-code-compile* nil)
-(defvar *shampoo-current-side* :instance)
-(defvar *shampoo-current-smalltalk* nil)
 
 (defconst *shampoo-buffer-info*
   '(("Namespaces" . "*shampoo-namespaces*")
@@ -44,18 +36,21 @@
     ("Echo"                . shampoo-handle-transcript)
     ("Magic"               . shampoo-handle-auth)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Layout ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (defun shampoo-side-is (side)
-  (eq *shampoo-current-side* side))
+  (with-~shampoo~
+   (eq (shampoo-current-side ~shampoo~) side)))
 
-(defun shampoo-header ()
-  (concat (shampoo-connect-info-str *shampoo-current-connection-info*)
-          ", "
-          *shampoo-current-smalltalk*))
+(defun shampoo-make-header ()
+  (with-~shampoo~
+   (format
+    "%s, %s"
+    (shampoo-connect-info-str
+     (shampoo-current-connection-info ~shampoo~))
+    (shampoo-dialect-specific-version
+     (shampoo-current-smalltalk ~shampoo~)))))
 
 (defun shampoo-update-headers ()
-  (let ((header (shampoo-header)))
+  (let ((header (shampoo-make-header)))
     (do-workspaces (each)
       (when (buffer-live-p each)
         (shampoo-update-header-at each header)))
@@ -66,18 +61,21 @@
 (defun shampoo-handle-auth (resp)
   (let* ((pass (read-passwd "Password: "))
          (magic (shampoo-response-enclosed-string resp)))
-    (shampoo-send-message
-     (shampoo-make-login-rq
-      :id 1
-      :user (shampoo-connect-info-login
-             *shampoo-current-connection-info*)
-      :encd-pass (shampoo-prepare-pass magic pass)))
-    (shampoo-send-message
-     (shampoo-make-namespaces-rq :id 1))))
+    (with-~shampoo~
+     (shampoo-send-message
+      (shampoo-make-login-rq
+       :id 1
+       :user (shampoo-connect-info-login
+              (shampoo-current-connection-info ~shampoo~))
+       :encd-pass (shampoo-prepare-pass magic pass)))
+     (shampoo-send-message
+      (shampoo-make-namespaces-rq :id 1)))))
 
 (defun shampoo-handle-server-info-response (resp)
-  (setq *shampoo-current-smalltalk*
-        (shampoo-response-enclosed-string resp))
+  (with-~shampoo~
+   (setf
+    (shampoo-current-smalltalk ~shampoo~)
+    (shampoo-dialect-for (shampoo-response-enclosed-string resp))))
   (shampoo-update-headers))
 
 (defun shampoo-handle-printit (resp)
@@ -95,26 +93,30 @@
         (set-window-buffer (frame-first-window frame) buffer)))
     (save-excursion
       (set-buffer buffer)
-      (setq header-line-format (shampoo-header))
+      (setq header-line-format (shampoo-make-header))
       (goto-char (point-max))
       (insert (shampoo-response-enclosed-string resp)))))
 
+;; TODO make pure
 (defun shampoo-current-class-name ()
-  (if (eq *shampoo-current-side* :instance)
-      *shampoo-current-class*
-    (concat *shampoo-current-class* " class")))
+  (with-~shampoo~
+   (let ((class-name (shampoo-current-class ~shampoo~)))
+     (if (shampoo-side-is :instance)
+         class-name
+       (format "%s class" class-name)))))
 
 (defun shampoo-build-method-name ()
-  (format "%s>>%s"
-          (shampoo-current-class-name)
-          *shampoo-current-method*))
+  (with-~shampoo~
+   (format "%s>>%s"
+           (shampoo-current-class-name)
+           (shampoo-current-method ~shampoo~))))
           
 (defun shampoo-handle-source-response (resp)
   (save-excursion
     (set-buffer (get-buffer-create "*shampoo-code*"))
     (setq header-line-format
           (format "%s    %s"
-                  (shampoo-header)
+                  (shampoo-make-header)
                   (shampoo-build-method-name)))
     (erase-buffer)
     (insert (shampoo-response-enclosed-string resp))))
@@ -158,7 +160,10 @@
       (shampoo-handle-aggregate-response response buffer))))
   
 (defun shampoo-send-message (msg)
-  (shampoo-net-send ~connection~ msg))
+  (with-~shampoo~
+   (shampoo-net-send
+    (shampoo-current-connection ~shampoo~)
+    msg)))
 
 (defun shampoo-send-closure (connection)
   (lexical-let ((c connection))
@@ -173,48 +178,32 @@
 (defun shampoo-handle-shutdown ()
   (message "Shampoo: connection terminated"))
 
-(defun shampoo-set-current-connection (connection)
-  (lexical-let ((c connection))
-    (setq *shampoo-connection-closure*
-          (lambda () c))))
-
-(defun shampoo-get-current-connection ()
-  (when *shampoo-connection-closure*
-    (funcall *shampoo-connection-closure*)))
-
-(defmacro with-shampoo-connection (&rest body)
-  `(let ((~connection~ (shampoo-get-current-connection)))
-     ,@body))
-
 (defun shampoo-connect (login-info)
   (interactive "sConnect to a Shampoo image: ")
   (let ((connect-info (shampoo-parse-login login-info)))
     (if connect-info
         (let ((connection (shampoo-net-connect connect-info)))
           (shampoo-disconnect)
-          (setq *shampoo-current-connection-info* connect-info
-                *shampoo-current-connection* connection)
+          (shampoo-reset-state connection connect-info)
           (shampoo-connection-setup
            connection
            :on-receive   'shampoo-handle-incoming
            :on-shutdown  'shampoo-handle-shutdown)
           (message "Shampoo: connected successfully")
           (shampoo-create-layout)
-          (shampoo-set-current-connection connection)
-          (shampoo-update-send-closures
-           (shampoo-send-closure connection))
           (shampoo-update-current-side))
       (message "Shampoo: incorrect login info"))))
 
 (defun shampoo-disconnect ()
   (interactive)
-  (let ((connection (shampoo-get-current-connection)))
-    (when connection
+  (with-~shampoo~
+   (let ((connection (shampoo-current-connection ~shampoo~)))
+     (when connection
       (shampoo-net-disconnect connection)
       (dolist (buffer-info *shampoo-buffer-info*)
         (shampoo-clear-buffer (cdr buffer-info)))
-      (shampoo-clear-buffer "*shampoo-code*"))))
+      (shampoo-clear-buffer "*shampoo-code*")))))
 
 (provide 'shampoo)
 
-;; shampoo.el ends here
+;; shampoo.el ends here.

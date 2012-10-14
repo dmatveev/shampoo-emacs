@@ -6,6 +6,7 @@
 ;; please refer to the LICENSE file for details.
 
 (require 'cl)
+(require 'shampoo-state)
 
 (defun shampoo-log (&rest args)
   (save-excursion
@@ -58,7 +59,9 @@
                     (:class    . "class")))))
 
 (defun shampoo-side ()
-  (shampoo-side-sym-as-param *shampoo-current-side*))
+  (with-~shampoo~
+   (shampoo-side-sym-as-param
+    (shampoo-current-side ~shampoo~))))
 
 (defmacro when-shampoo-alive (instance &rest body)
   `(when (and (processp ,instance)
