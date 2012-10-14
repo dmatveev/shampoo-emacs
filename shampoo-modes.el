@@ -7,6 +7,7 @@
 
 (require 'cl)
 (require 'shampoo-state)
+(require 'shampoo-faces)
 
 (define-derived-mode shampoo-working-mode
   text-mode "Shampoo mode for the working buffer"
@@ -35,6 +36,8 @@
   (interactive)
   (let ((this-line (shampoo-this-line)))
     (when (not (equal this-line ""))
+      (shampoo-reset-buffer-faces)
+      (shampoo-set-line-face 'shampoo-selected-list-item)
       (when (boundp 'set-current-item)
         (funcall set-current-item this-line))
       (shampoo-send-message
@@ -178,8 +181,48 @@
       (set-buffer (get-buffer buffer-name))
       (lambda (a b) (funcall 'produce-request)))))
 
+;; This piece of code is adopted from the smalltalk-mode.el,
+;; the part of the GNU Smalltalk distribution.
+;; Thanks to its authors and contributors.
+
+(defconst smalltalk-binsel "\\([-+*/~,<>=&?]\\{1,2\\}\\|:=\\|||\\)"
+  "Smalltalk binary selectors")
+
+(defconst smalltalk-font-lock-keywords
+  (list
+   '("\".*\""              . font-lock-comment-face)
+   '("\'.*\'"              . font-lock-string-face)
+   '("#[A-z][A-z0-9_]*"    . font-lock-constant-face)
+   '("\\<[A-z][A-z0-9_]*:" . font-lock-function-name-face)
+   (cons smalltalk-binsel   'font-lock-function-name-face)
+   '("\\$."                . font-lock-string-face)
+   '("\\<[A-Z]\\sw*\\>"    . font-lock-type-face)
+   '("[0-9]+"              . font-lock-constant-face))
+  "Basic Smalltalk keywords font-locking")
+
+(defconst smalltalk-font-lock-keywords-1
+  smalltalk-font-lock-keywords	   
+  "Level 1 Smalltalk font-locking keywords")
+
+(defconst smalltalk-font-lock-keywords-2
+  (append smalltalk-font-lock-keywords-1
+	  (list 
+	   '("\\<\\(true\\|false\\|nil\\|self\\|super\\)\\>" 
+	     . font-lock-builtin-face)
+	   '(":[a-z][A-z0-9_]*" . font-lock-variable-name-face)
+	   '(" |"               . font-lock-type-face)
+	   '("<.*>"             . font-lock-builtin-face)))
+  "Level 2 Smalltalk font-locking keywords")
+
+(defconst smalltalk-font-lock-keywords-list
+  '((smalltalk-font-lock-keywords
+     smalltalk-font-lock-keywords-1
+     smalltalk-font-lock-keywords-2)))
+
 (define-derived-mode shampoo-code-mode
-  text-mode "Shampoo code")
+  text-mode "Shampoo code"
+  (set (make-local-variable 'font-lock-defaults)  
+       smalltalk-font-lock-keywords-list))
 
 (defun shampoo-compile-code ()
   (interactive)

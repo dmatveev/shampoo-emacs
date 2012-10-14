@@ -6,6 +6,7 @@
 ;; please refer to the LICENSE file for details.
 
 (eval-when-compile (require 'cl))
+(require 'shampoo-modes)
 
 (defvar *shampoo-workspaces* nil)
 
@@ -14,7 +15,9 @@
 (defvar *shampoo-last-active-workspace* nil)
 
 (define-derived-mode shampoo-workspace-mode
-  text-mode "Shampoo workspace mode")
+  text-mode "Shampoo workspace mode"
+  (set (make-local-variable 'font-lock-defaults)  
+       smalltalk-font-lock-keywords-list))
 
 (defmacro shampoo-mk-tool (name type)
   `(defun ,name (from to)
