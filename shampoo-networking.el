@@ -48,11 +48,14 @@
   (let ((proc (shampoo-connection-process connection)))
     (not (eq 'closed (process-status proc)))))
 
+(defun shampoo-net-mkmsg (str)
+  (format "Content-Length: %d\r\n\r\n%s" (length str) str))
+
 (defun shampoo-net-send (connection msg)
   ; (message "Sending: %s" msg)
   (process-send-string
    (shampoo-connection-process connection)
-   msg))
+   (shampoo-net-mkmsg msg)))
 
 (defun shampoo-net-disconnect (connection)
   (when connection

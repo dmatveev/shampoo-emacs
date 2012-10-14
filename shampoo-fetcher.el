@@ -59,10 +59,10 @@
          (maybe-header (concat this-str "\r\n" next-str "\r\n"))
          (pattern '("Content-Length:" :sp :D :cr :lf :cr :lf))
          (parsed (shampoo-regexp-parse maybe-header pattern)))
-    (message "Trying to parse \"%s\"" maybe-header)
+    ; (message "Trying to parse \"%s\"" maybe-header)
     (if parsed
         (save-excursion
-          (message "Parsed ok!")
+          ; (message "Parsed ok!")
           (let ((len
                  (string-to-number (shampoo-regexp-extract 0 parsed))))
             (beginning-of-buffer)
@@ -95,14 +95,13 @@
 (defun shampoo-fetcher-process (str)
   (save-excursion
     (set-buffer (shampoo-fetcher-buffer))
-    (save-excursion
-      (end-of-buffer)
-      (insert str)
-      (beginning-of-buffer)
-      (remove-if
-       'null
-       (loop while (shampoo-fetcher-can-process buflocal-fsm)
-             collect (shampoo-fetcher-fsm-process buflocal-fsm))))))
+    (end-of-buffer)
+    (insert str)
+    (beginning-of-buffer)
+    (remove-if
+     'null
+     (loop while (shampoo-fetcher-can-process buflocal-fsm)
+           collect (shampoo-fetcher-fsm-process buflocal-fsm)))))
 
 (defun shampoo-fetcher-buffer ()
   (let* ((bufname "*shampoo-working-buffer*")
