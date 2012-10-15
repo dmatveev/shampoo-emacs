@@ -6,8 +6,10 @@
 ;; please refer to the LICENSE file for details.
 
 (require 'cl)
+(require 'shampoo-dict)
 (require 'shampoo-state)
 (require 'shampoo-faces)
+(require 'shampoo-utils)
 
 (define-derived-mode shampoo-working-mode
   text-mode "Shampoo mode for the working buffer"
@@ -231,6 +233,26 @@
 
 (define-key shampoo-code-mode-map "\C-c\C-c" 'shampoo-compile-code)
 (define-key shampoo-code-mode-map "\C-c\C-t" 'shampoo-toggle-side)
+
+(defun shampoo-jump-to (wnd)
+  (lexical-let ((binding wnd))
+    (lambda ()
+      (interactive)
+      (with-~shampoo~
+       (select-window
+        (shampoo-dict-get
+         binding
+         (shampoo-current-main-windows ~shampoo~)))))))
+
+(defun shampoo-define-jump-keys (mode-map)
+  (define-key mode-map "\C-cn" (shampoo-jump-to :namespaces))
+  (define-key mode-map "\C-cc" (shampoo-jump-to :classes))
+  (define-key mode-map "\C-c[" (shampoo-jump-to :categories))
+  (define-key mode-map "\C-c]" (shampoo-jump-to :methods))
+  (define-key mode-map "\C-c " (shampoo-jump-to :source)))
+
+(shampoo-define-jump-keys shampoo-list-mode-map)
+(shampoo-define-jump-keys shampoo-code-mode-map)
 
 (provide 'shampoo-modes)
 

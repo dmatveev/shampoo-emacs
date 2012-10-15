@@ -6,6 +6,7 @@
 ;; please refer to the LICENSE file for details.
 
 (require 'cl)
+(require 'shampoo-dict)
 
 ;; TODO: drop method
 (defstruct shampoo-current
@@ -15,7 +16,8 @@
   class
   method
   side
-  smalltalk)
+  smalltalk
+  main-windows)
 
 (defvar shampoo-current-state nil)
 
@@ -30,7 +32,8 @@
    (make-shampoo-current
     :connection connection
     :connection-info connection-info
-    :side :instance)))
+    :side :instance
+    :main-windows (make-shampoo-dict))))
 
 (defun shampoo-get-current-namespace ()
   (with-~shampoo~
