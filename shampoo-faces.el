@@ -7,7 +7,7 @@
 
 (defface shampoo-selected-list-item
   '((((class color) (min-colors 88))
-     :background "turquoise")
+     :background "royal blue" :foreground "white")
     (((class color) (min-colors 8))
      :background "blue" :foreground "white")
     (((type tty) (class mono))
