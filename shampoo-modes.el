@@ -49,7 +49,7 @@
   (interactive)
   (with-~shampoo~
    (let ((current-side (shampoo-current-side ~shampoo~)))
-     (setf (shampoo-current-side ~shampo~)
+     (setf (shampoo-current-side ~shampoo~)
            (if (eq current-side :instance) :class :instance))))
   (shampoo-update-current-side)
   (save-excursion
