@@ -19,7 +19,7 @@
 (require 'shampoo-tools)
 (require 'shampoo-utils)
 
-(defvar *shampoo-code-compile* nil)
+(defvar *shampoo-code-compile* 'shampoo-compile-class)
 
 (defconst *shampoo-buffer-info*
   '(("Namespaces" . "*shampoo-namespaces*")
@@ -54,6 +54,7 @@
       :key next-id
       :value t
       :into (shampoo-current-busy-ids ~shampoo~))
+     (setf (shampoo-current-last-id ~shampoo~) next-id)
      next-id)))
 
 (defun shampoo-release-id (id)
@@ -180,6 +181,7 @@
   
 (defun shampoo-send-message (msg)
   (with-~shampoo~
+   ; (message "Sending \"%s\"" msg)
    (shampoo-net-send
     (shampoo-current-connection ~shampoo~)
     msg)))
