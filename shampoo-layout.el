@@ -43,8 +43,10 @@
           (set-buffer buff)
           (funcall mode))
         (with-~shampoo~
-         (shampoo-dict-put binding wnd
-          (shampoo-current-main-windows ~shampoo~)))))))
+         (shampoo-dict-put
+          :key binding
+          :value wnd
+          :into (shampoo-current-main-windows ~shampoo~)))))))
 
 (defun shampoo-layout-desc ()
   (shampoo-rows

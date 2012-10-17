@@ -85,7 +85,7 @@
    (setf (shampoo-current-namespace ~shampoo~) item)))
 
 (defun shampoo-namespaces-produce-request (item)
-  (shampoo-make-classes-rq :id 1 :ns item))
+  (shampoo-make-classes-rq :id (shampoo-give-id) :ns item))
 
 (defun shampoo-namespaces-update-source-buffer ()
   (let ((attrs (make-hash-table)))
@@ -109,7 +109,7 @@
 
 (defun shampoo-classes-produce-request (item)
   (shampoo-make-cats-rq
-   :id 1
+   :id (shampoo-give-id)
    :ns (shampoo-get-current-namespace)
    :class item
    :side (shampoo-side)))
@@ -117,7 +117,7 @@
 (defun shampoo-classes-update-source-buffer ()
   (shampoo-send-message
    (shampoo-make-class-rq
-    :id 1
+    :id (shampoo-give-id)
     :ns (shampoo-get-current-namespace)
     :class (shampoo-get-current-class)
     :side (shampoo-side))))
@@ -132,7 +132,7 @@
 
 (defun shampoo-cats-produce-request (item)
   (shampoo-make-methods-rq
-   :id 1
+   :id (shampoo-give-id)
    :ns (shampoo-get-current-namespace)
    :class (shampoo-get-current-class)
    :category item
@@ -165,7 +165,7 @@
 
 (defun shampoo-methods-produce-request (item)
   (shampoo-make-method-rq
-   :id 1
+   :id (shampoo-give-id)
    :ns (shampoo-get-current-namespace)
    :class (shampoo-get-current-class)
    :method item

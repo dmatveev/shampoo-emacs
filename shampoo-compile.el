@@ -49,7 +49,7 @@
   (when class-data
     (shampoo-send-message
      (shampoo-make-compile-instance-rq
-      :id 1
+      :id (shampoo-give-id)
       :ss "Smalltalk"
       :side (shampoo-side)
       :ns (shampoo-get-current-namespace)
@@ -66,7 +66,7 @@
   (when class-data
     (shampoo-send-message
      (shampoo-make-compile-class-rq
-      :id 1
+      :id (shampoo-give-id)
       :ss "Smalltalk"
       :side (shampoo-side)
       :ns (shampoo-get-current-namespace)
@@ -85,7 +85,7 @@
   (interactive)
   (shampoo-send-message
    (shampoo-make-compile-method-rq
-    :id 1
+    :id (shampoo-give-id)
     :ns (shampoo-get-current-namespace)
     :class (shampoo-get-current-class)
     :side (shampoo-side)

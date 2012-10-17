@@ -8,12 +8,15 @@
 (defun make-shampoo-dict ()
   (make-hash-table))
 
-(defun shampoo-dict-put (key value data)
-  (puthash key value data))
+(defun* shampoo-dict-put (&key key value into)
+  (puthash key value into))
+
+(defun shampoo-dict-drop (key data)
+  (remhash key data))
 
 (defun shampoo-dict-apply (key f data)
   (let ((v (shampoo-dict-get key data)))
-    (shampoo-dict-put key (funcall f v) data)))
+    (shampoo-dict-put :key key :value (funcall f v) :into data)))
 
 (defun shampoo-dict-apply-many (keys f data)
   (dolist (k keys)
@@ -23,10 +26,13 @@
 (defun shampoo-dict-get (key data)
   (gethash key data))
 
+(defun shampoo-dict-has (key data)
+  (not (null (shampoo-dict-get key data))))
+
 (defun shampoo-dict-binder-for-regexp (class-data)
   (lexical-let ((d class-data))
     (lambda (key value)
-      (shampoo-dict-put key value d))))
+      (shampoo-dict-put :key key :value value :into d))))
 
 (provide 'shampoo-dict)
 

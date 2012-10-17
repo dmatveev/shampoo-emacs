@@ -36,6 +36,30 @@
     ("Echo"                . shampoo-handle-transcript)
     ("Magic"               . shampoo-handle-auth)))
 
+(defun shampoo-next-id (base)
+  (let ((next-id (1+ base)))
+    (mod next-id 65536)))
+
+(defun shampoo-id-is-busy (id)
+  (with-~shampoo~
+   (shampoo-dict-has id (shampoo-current-busy-ids ~shampoo~))))
+
+(defun shampoo-give-id ()
+  (with-~shampoo~
+   (let ((next-id
+          (shampoo-next-id (shampoo-current-last-id ~shampoo~))))
+     (while (shampoo-id-is-busy next-id)
+       (setq next-id (shampoo-next-id next-id)))
+     (shampoo-dict-put
+      :key next-id
+      :value t
+      :into (shampoo-current-busy-ids ~shampoo~))
+     next-id)))
+
+(defun shampoo-release-id (id)
+  (with-~shampoo~
+   (shampoo-dict-drop id (shampoo-current-busy-ids ~shampoo~))))
+
 (defun shampoo-side-is (side)
   (with-~shampoo~
    (eq (shampoo-current-side ~shampoo~) side)))
@@ -64,12 +88,12 @@
     (with-~shampoo~
      (shampoo-send-message
       (shampoo-make-login-rq
-       :id 1
+       :id (shampoo-give-id)
        :user (shampoo-connect-info-login
               (shampoo-current-connection-info ~shampoo~))
        :encd-pass (shampoo-prepare-pass magic pass)))
      (shampoo-send-message
-      (shampoo-make-namespaces-rq :id 1)))))
+      (shampoo-make-namespaces-rq :id (shampoo-give-id))))))
 
 (defun shampoo-handle-server-info-response (resp)
   (with-~shampoo~
@@ -79,10 +103,23 @@
   (shampoo-update-headers))
 
 (defun shampoo-handle-printit (resp)
-  (save-excursion
-    ;; dirtiest hack ever
-    (set-buffer *shampoo-last-active-workspace*)
-    (insert (shampoo-response-enclosed-string resp))))
+  (with-~shampoo~
+   (let* ((id (shampoo-response-id resp))
+          (text (shampoo-response-enclosed-string resp))
+          (target-buffer
+          (shampoo-dict-get
+           id
+           (shampoo-current-printit-subscribers ~shampoo~))))
+     (if target-buffer
+         (save-excursion
+           (set-buffer target-buffer)
+           (insert text)
+           (shampoo-dict-drop
+            id
+            (shampoo-current-printit-subscribers ~shampoo~)))
+       (message
+        "Got a PrintIt response \"%s\" without a target buffer"
+        text)))))
 
 (defun shampoo-handle-transcript (resp)
   (let ((buffer (get-buffer "*shampoo-transcript*")))
@@ -155,6 +192,7 @@
   (let* ((type (shampoo-response-type response))
          (buffer (shampoo-buffer-for type))
          (handler (shampoo-handler-for type)))
+    (shampoo-release-id (shampoo-response-id response))
     (if handler
         (funcall handler response)
       (shampoo-handle-aggregate-response response buffer))))

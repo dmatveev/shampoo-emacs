@@ -17,7 +17,11 @@
   method
   side
   smalltalk
-  main-windows)
+  main-windows
+  busy-ids
+  last-id
+  workspaces
+  printit-subscribers)
 
 (defvar shampoo-current-state nil)
 
@@ -33,7 +37,11 @@
     :connection connection
     :connection-info connection-info
     :side :instance
-    :main-windows (make-shampoo-dict))))
+    :main-windows (make-shampoo-dict)
+    :busy-ids (make-shampoo-dict)
+    :last-id 1
+    :workspaces nil
+    :printit-subscribers (make-shampoo-dict))))
 
 (defun shampoo-get-current-namespace ()
   (with-~shampoo~

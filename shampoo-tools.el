@@ -7,30 +7,34 @@
 
 (eval-when-compile (require 'cl))
 (require 'shampoo-modes)
-
-(defvar *shampoo-workspaces* nil)
-
-;; TODO associate the doit/printit initiator buffer with the
-;; request/response id
-(defvar *shampoo-last-active-workspace* nil)
+(require 'shampoo-state)
 
 (define-derived-mode shampoo-workspace-mode
   text-mode "Shampoo workspace mode"
   (set (make-local-variable 'font-lock-defaults)  
        smalltalk-font-lock-keywords-list))
 
-(defmacro shampoo-mk-tool (name type)
-  `(defun ,name (from to)
-     (interactive "r")
-     (setq *shampoo-last-active-workspace* (current-buffer))
-     (shampoo-send-message
-      (shampoo-make-eval-rq
-       :id 1
-       :type ,type
-       :code (buffer-substring from to)))))
+(defun shampoo-do-it (from to)
+  (interactive "r")
+  (shampoo-send-message
+   (shampoo-make-eval-rq
+    :id (shampoo-give-id)
+    :type "DoIt"
+    :code (buffer-substring from to))))
 
-(shampoo-mk-tool shampoo-do-it    "DoIt")
-(shampoo-mk-tool shampoo-print-it "PrintIt")
+(defun shampoo-print-it (from to)
+  (interactive "r")
+  (let ((request-id (shampoo-give-id)))
+    (with-~shampoo~
+     (shampoo-dict-put
+      :key request-id
+      :value (current-buffer)
+      :into (shampoo-current-printit-subscribers ~shampoo~)))
+    (shampoo-send-message
+     (shampoo-make-eval-rq
+      :id request-id
+      :type "PrintIt"
+      :code (buffer-substring from to)))))
 
 (define-key shampoo-workspace-mode-map "\C-c\C-d" 'shampoo-do-it)
 (define-key shampoo-workspace-mode-map "\C-c\C-p" 'shampoo-print-it)
@@ -39,7 +43,8 @@
   (interactive)
   (let ((frame (make-frame))
         (buffer (generate-new-buffer "*shampoo-workspace*")))
-    (pushnew buffer *shampoo-workspaces*)
+    (with-~shampoo~
+     (pushnew buffer (shampoo-current-workspaces ~shampoo~)))
     (raise-frame frame)
     (set-window-buffer (frame-first-window frame) buffer)
     (save-excursion
@@ -49,8 +54,9 @@
 
 (defmacro do-workspaces (evar &rest body)
   (destructuring-bind (var) evar
-    `(dolist (,var *shampoo-workspaces*)
-       ,@body)))
+    `(with-~shampoo~
+      (dolist (,var (shampoo-current-workspaces ~shampoo~))
+        ,@body))))
 
 (provide 'shampoo-tools)
 

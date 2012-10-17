@@ -81,7 +81,7 @@
 (defun* shampoo-make-compile-method-rq (&key id ns class side code)
   (shampoo-xml
    'request
-   `(:id 1 :type "CompileMethod"
+   `(:id ,id :type "CompileMethod"
      :namespace ,ns :class ,class :side ,side)
    code))
 

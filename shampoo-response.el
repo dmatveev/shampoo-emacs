@@ -10,8 +10,7 @@
 ;; Currently response data is represented as a result of
 ;; xml-parse-region.
 
-(defstruct shampoo-response
-  attrs data)
+(defstruct shampoo-response attrs data)
 
 (defun shampoo-response-from (str)
   (let ((xml (shampoo-parse-xml str)))
@@ -21,6 +20,9 @@
 
 (defun shampoo-response-type (resp)
   (shampoo-response-attr 'type resp))
+
+(defun shampoo-response-id (resp)
+  (string-to-number (shampoo-response-attr 'id resp)))
 
 (defun shampoo-response-attr (name resp)
   (gethash name (shampoo-response-attrs resp)))
