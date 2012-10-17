@@ -134,27 +134,18 @@
       (goto-char (point-max))
       (insert (shampoo-response-enclosed-string resp)))))
 
-;; TODO make pure
-(defun shampoo-current-class-name ()
-  (with-~shampoo~
-   (let ((class-name (shampoo-current-class ~shampoo~)))
-     (if (shampoo-side-is :instance)
-         class-name
-       (format "%s class" class-name)))))
+(defun shampoo-format-class-name (name)
+  (if (shampoo-side-is :instance)
+      name
+    (format "%s class" name)))
 
-(defun shampoo-build-method-name ()
+(defun shampoo-build-method-name (class method)
   (with-~shampoo~
-   (format "%s>>%s"
-           (shampoo-current-class-name)
-           (shampoo-current-method ~shampoo~))))
+   (format "%s>>%s" (shampoo-format-class-name class) method)))
           
 (defun shampoo-handle-source-response (resp)
   (save-excursion
     (set-buffer (get-buffer-create "*shampoo-code*"))
-    (setq header-line-format
-          (format "%s    %s"
-                  (shampoo-make-header)
-                  (shampoo-build-method-name)))
     (erase-buffer)
     (insert (shampoo-response-enclosed-string resp))))
 

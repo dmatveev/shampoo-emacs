@@ -161,7 +161,13 @@
 
 (defun shampoo-methods-set-current-item (item)
   (with-~shampoo~
-   (setf (shampoo-current-method ~shampoo~) item)))
+   (shampoo-update-header-at
+    "*shampoo-code*"
+    (format "%s    %s"
+            (shampoo-make-header)
+            (shampoo-build-method-name
+             (shampoo-current-class ~shampoo~)
+             item)))))
 
 (defun shampoo-methods-produce-request (item)
   (shampoo-make-method-rq

@@ -8,13 +8,11 @@
 (require 'cl)
 (require 'shampoo-dict)
 
-;; TODO: drop method
 (defstruct shampoo-current
   connection
   connection-info
   namespace
   class
-  method
   side
   smalltalk
   main-windows
