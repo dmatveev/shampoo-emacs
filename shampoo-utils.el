@@ -72,14 +72,6 @@
    (shampoo-side-sym-as-param
     (shampoo-current-side ~shampoo~))))
 
-(defmacro when-shampoo-alive (instance &rest body)
-  `(when (and (processp ,instance)
-              (not (eql (process-status ,instance) 'closed)))
-     ,@body))
-
-(defmacro when-shampoo-alive-and (clause instance body)
-  `(when ,clause (when-shampoo-alive ,instance ,body)))
-
 (defun shampoo-curry (fcn &rest args)
   (lexical-let ((f fcn)
                 (a args))
