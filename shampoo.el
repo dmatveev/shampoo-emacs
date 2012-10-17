@@ -67,11 +67,13 @@
 (defun shampoo-make-header ()
   (with-~shampoo~
    (format
-    "%s, %s"
+    "%s    %s"
     (shampoo-connect-info-str
      (shampoo-current-connection-info ~shampoo~))
-    (shampoo-dialect-specific-version
-     (shampoo-current-smalltalk ~shampoo~)))))
+    (shampoo-set-str-face
+     (shampoo-dialect-specific-version
+      (shampoo-current-smalltalk ~shampoo~))
+     'shampoo-smalltalk-version))))
 
 (defun shampoo-update-headers ()
   (let ((header (shampoo-make-header)))
@@ -141,7 +143,9 @@
 
 (defun shampoo-build-method-name (class method)
   (with-~shampoo~
-   (format "%s>>%s" (shampoo-format-class-name class) method)))
+   (shampoo-set-str-face
+    (format "%s>>%s" (shampoo-format-class-name class) method)
+    'shampoo-method-name)))
           
 (defun shampoo-handle-source-response (resp)
   (save-excursion
