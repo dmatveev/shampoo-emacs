@@ -22,14 +22,19 @@
     :type "DoIt"
     :code (buffer-substring from to))))
 
+(defun shampoo-printit-to (buffer)
+  (lexical-let ((buff buffer))
+    (lambda (resp)
+      (save-excursion
+        (set-buffer buff)
+        (insert (shampoo-response-enclosed-string resp))))))
+
 (defun shampoo-print-it (from to)
   (interactive "r")
   (let ((request-id (shampoo-give-id)))
-    (with-~shampoo~
-     (shampoo-dict-put
-      :key request-id
-      :value (current-buffer)
-      :into (shampoo-current-printit-subscribers ~shampoo~)))
+    (shampoo-subscribe
+     request-id
+     (shampoo-printit-to (current-buffer)))
     (shampoo-send-message
      (shampoo-make-eval-rq
       :id request-id

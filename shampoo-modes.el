@@ -34,6 +34,16 @@
     (setq header-line-format
           (format "%s side" (shampoo-side)))))
 
+(defun shampoo-open-at-list (list-buff-name item)
+  (save-excursion
+    (set-buffer (get-buffer list-buff-name))
+    (goto-char (point-min))
+    (while (search-forward item nil t)
+      (if (equal item (shampoo-this-line))
+          (progn
+            (shampoo-open-from-list)
+            (return))))))
+
 (defun shampoo-open-from-list ()
   (interactive)
   (let ((this-line (shampoo-this-line)))

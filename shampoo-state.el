@@ -7,6 +7,7 @@
 
 (require 'cl)
 (require 'shampoo-dict)
+(require 'shampoo-response)
 
 (defstruct shampoo-current
   connection
@@ -19,7 +20,7 @@
   busy-ids
   last-id
   workspaces
-  printit-subscribers)
+  response-subscribers)
 
 (defvar shampoo-current-state nil)
 
@@ -39,7 +40,23 @@
     :busy-ids (make-shampoo-dict)
     :last-id 1
     :workspaces nil
-    :printit-subscribers (make-shampoo-dict))))
+    :response-subscribers (make-shampoo-dict))))
+
+(defun shampoo-subscribe (response-id action)
+  (with-~shampoo~
+   (shampoo-dict-put
+    :key response-id
+    :value action
+    :into (shampoo-current-response-subscribers ~shampoo~))))
+
+(defun shampoo-inform (response)
+  (with-~shampoo~
+   (let ((action
+          (shampoo-dict-get
+           (shampoo-response-id response)
+           (shampoo-current-response-subscribers ~shampoo~))))
+     (when action
+       (funcall action response)))))
 
 (defun shampoo-get-current-namespace ()
   (with-~shampoo~

@@ -53,7 +53,8 @@
       :ss "Smalltalk"
       :side (shampoo-side)
       :ns (shampoo-get-current-namespace)
-      :desc class-data))))
+      :desc class-data))
+    (shampoo-reload-class-list (shampoo-dict-get :name class-data))))
   
 (defun shampoo-parse-class-side-message (code)
   (shampoo-parse-message
@@ -70,7 +71,8 @@
       :ss "Smalltalk"
       :side (shampoo-side)
       :ns (shampoo-get-current-namespace)
-      :desc class-data))))
+      :desc class-data))
+    (shampoo-reload-class-list (shampoo-dict-get :name class-data))))
 
 (defun shampoo-compile-class ()
   (interactive)
@@ -89,7 +91,8 @@
     :ns (shampoo-get-current-namespace)
     :class (shampoo-get-current-class)
     :side (shampoo-side)
-    :code (shampoo-buffer-contents "*shampoo-code*"))))
+    :code (shampoo-buffer-contents "*shampoo-code*")))
+  (shampoo-reload-categories-list))
 
 (defun shampoo-print-class-message-from-response (template resp)
   (dolist (each template)

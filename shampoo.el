@@ -105,23 +105,8 @@
   (shampoo-update-headers))
 
 (defun shampoo-handle-printit (resp)
-  (with-~shampoo~
-   (let* ((id (shampoo-response-id resp))
-          (text (shampoo-response-enclosed-string resp))
-          (target-buffer
-          (shampoo-dict-get
-           id
-           (shampoo-current-printit-subscribers ~shampoo~))))
-     (if target-buffer
-         (save-excursion
-           (set-buffer target-buffer)
-           (insert text)
-           (shampoo-dict-drop
-            id
-            (shampoo-current-printit-subscribers ~shampoo~)))
-       (message
-        "Got a PrintIt response \"%s\" without a target buffer"
-        text)))))
+  ;; do nothing, all work is done in the subscriber lambda.
+  )
 
 (defun shampoo-handle-transcript (resp)
   (let ((buffer (get-buffer "*shampoo-transcript*")))
@@ -187,10 +172,11 @@
   (let* ((type (shampoo-response-type response))
          (buffer (shampoo-buffer-for type))
          (handler (shampoo-handler-for type)))
-    (shampoo-release-id (shampoo-response-id response))
     (if handler
         (funcall handler response)
-      (shampoo-handle-aggregate-response response buffer))))
+      (shampoo-handle-aggregate-response response buffer))
+    (shampoo-inform response)
+    (shampoo-release-id (shampoo-response-id response))))
   
 (defun shampoo-send-message (msg)
   (with-~shampoo~
@@ -198,10 +184,29 @@
     (shampoo-current-connection ~shampoo~)
     msg)))
 
-(defun shampoo-send-closure (connection)
-  (lexical-let ((c connection))
-    (lambda (str)
-      (shampoo-net-send c str))))
+(defun shampoo-make-class-opener (class-to-open)
+  (lexical-let ((class class-to-open))
+    (lambda (resp)
+      (shampoo-open-at-list "*shampoo-classes*" class))))
+
+(defun* shampoo-reload-class-list (&optional open-then)
+  (let ((request-id (shampoo-give-id)))
+    (when open-then
+      (shampoo-subscribe
+       request-id
+       (shampoo-make-class-opener open-then)))
+    (shampoo-send-message
+     (shampoo-make-classes-rq
+      :id request-id
+      :ns (shampoo-get-current-namespace)))))
+
+(defun* shampoo-reload-categories-list (&optional open-then)
+  (shampoo-send-message
+   (shampoo-make-cats-rq
+    :id (shampoo-give-id)
+    :ns (shampoo-get-current-namespace)
+    :class (shampoo-get-current-class)
+    :side (shampoo-side))))
 
 (defun shampoo-handle-incoming (str)
   (dolist (msg (shampoo-fetcher-process str))

@@ -27,6 +27,15 @@
     (next-line)
     (shampoo-this-line)))
 
+(defmacro shampoo-save-window (&rest body)
+  (let ((current (make-symbol "current")))
+    `(let ((,current (selected-window)))
+       ,@body
+       (select-window ,current))))
+
+(defun shampoo-this-line-no ()
+  (count-lines (point-min) (point)))
+
 (defun shampoo-buffer-num-lines ()
   (count-lines (point-min) (point-max)))
 
