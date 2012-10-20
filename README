@@ -1,0 +1,31 @@
+This is a Shampoo client for GNU Emacs
+--------------------------------------
+
+To install the mode, add the following lines to your `~/.emacs` file:
+
+        (add-to-list 'load-path "/path/to/shampoo-emacs")
+        (require 'shampoo)
+
+Commands:
+
+        M-x shampoo-connect        - connect to a Shampoo image
+        M-x shampoo-disconnect     - disconnect from it
+        M-x shampoo-restore-layout - recreate the Class Browser
+        M-x shampoo-open-workspace - open a new Workspace
+
+Hotkeys (Class Browser):
+
+        C-c n                      - jump to Namespaces
+        C-c c                      - jump to Classes
+        C-c [                      - jump to Categories
+        C-c ]                      - jump to Methods
+        C-c SPC                    - jump to source code
+
+Hotkeys (Workspace)
+
+        C-c C-d                    - evaluate region
+        C-c C-p                    - evaluate region and print result
+
+Shampoo project homepage:
+
+        http://dmitrymatveev.co.uk/shampoo
