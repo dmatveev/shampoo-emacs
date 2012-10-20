@@ -12,7 +12,8 @@
 (define-derived-mode shampoo-workspace-mode
   text-mode "Shampoo workspace mode"
   (set (make-local-variable 'font-lock-defaults)  
-       smalltalk-font-lock-keywords-list))
+       shampoo-smalltalk-font-lock-keywords-list)
+  (set-syntax-table shampoo-smalltalk-mode-syntax-table))
 
 (defun shampoo-do-it (from to)
   (interactive "r")

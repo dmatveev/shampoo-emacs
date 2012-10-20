@@ -203,27 +203,25 @@
 ;; the part of the GNU Smalltalk distribution.
 ;; Thanks to its authors and contributors.
 
-(defconst smalltalk-binsel "\\([-+*/~,<>=&?]\\{1,2\\}\\|:=\\|||\\)"
+(defconst shampoo-smalltalk-binsel "\\([-+*/~,<>=&?]\\{1,2\\}\\|:=\\|||\\)"
   "Smalltalk binary selectors")
 
-(defconst smalltalk-font-lock-keywords
+(defconst shampoo-smalltalk-font-lock-keywords
   (list
-   '("\".*\""              . font-lock-comment-face)
-   '("\'.*\'"              . font-lock-string-face)
-   '("#[A-z][A-z0-9_]*"    . font-lock-constant-face)
-   '("\\<[A-z][A-z0-9_]*:" . font-lock-function-name-face)
-   (cons smalltalk-binsel   'font-lock-function-name-face)
-   '("\\$."                . font-lock-string-face)
-   '("\\<[A-Z]\\sw*\\>"    . font-lock-type-face)
-   '("[0-9]+"              . font-lock-constant-face))
+   '("#[A-z][A-z0-9_]*"          . font-lock-constant-face)
+   '("\\<[A-z][A-z0-9_]*:"       . font-lock-function-name-face)
+   (cons shampoo-smalltalk-binsel 'font-lock-function-name-face)
+   '("\\$."                      . font-lock-string-face)
+   '("\\<[A-Z]\\sw*\\>"          . font-lock-type-face)
+   '("[0-9]+"                    . font-lock-constant-face))
   "Basic Smalltalk keywords font-locking")
 
-(defconst smalltalk-font-lock-keywords-1
-  smalltalk-font-lock-keywords	   
+(defconst shampoo-smalltalk-font-lock-keywords-1
+  shampoo-smalltalk-font-lock-keywords	   
   "Level 1 Smalltalk font-locking keywords")
 
-(defconst smalltalk-font-lock-keywords-2
-  (append smalltalk-font-lock-keywords-1
+(defconst shampoo-smalltalk-font-lock-keywords-2
+  (append shampoo-smalltalk-font-lock-keywords-1
 	  (list 
 	   '("\\<\\(true\\|false\\|nil\\|self\\|super\\)\\>" 
 	     . font-lock-builtin-face)
@@ -232,15 +230,66 @@
 	   '("<.*>"             . font-lock-builtin-face)))
   "Level 2 Smalltalk font-locking keywords")
 
-(defconst smalltalk-font-lock-keywords-list
-  '((smalltalk-font-lock-keywords
-     smalltalk-font-lock-keywords-1
-     smalltalk-font-lock-keywords-2)))
+(defconst shampoo-smalltalk-font-lock-keywords-list
+  '((shampoo-smalltalk-font-lock-keywords
+     shampoo-smalltalk-font-lock-keywords-1
+     shampoo-smalltalk-font-lock-keywords-2)))
+
+(defvar shampoo-smalltalk-mode-syntax-table 
+  (let ((table (make-syntax-table)))
+    ;; Make sure A-z0-9 are set to "w   " for completeness
+    (let ((c 0))
+      (setq c ?0)
+      (while (<= c ?9)
+	(setq c (1+ c))
+	(modify-syntax-entry c "w   " table))
+      (setq c ?A)
+      (while (<= c ?Z)
+	(setq c (1+ c))
+	(modify-syntax-entry c "w   " table))
+      (setq c ?a)
+      (while (<= c ?z)
+	(setq c (1+ c))
+	(modify-syntax-entry c "w   " table)))
+    (modify-syntax-entry 10  " >  " table) ; Comment (generic)
+    (modify-syntax-entry ?:  ".   " table) ; Symbol-char
+    (modify-syntax-entry ?_  "_   " table) ; Symbol-char
+    (modify-syntax-entry ?\" "!1  " table) ; Comment (generic)
+    (modify-syntax-entry ?'  "\"  " table) ; String
+    (modify-syntax-entry ?#  "'   " table) ; Symbol or Array constant
+    (modify-syntax-entry ?\( "()  " table) ; Grouping
+    (modify-syntax-entry ?\) ")(  " table) ; Grouping
+    (modify-syntax-entry ?\[ "(]  " table) ; Block-open
+    (modify-syntax-entry ?\] ")[  " table) ; Block-close
+    (modify-syntax-entry ?{  "(}  " table) ; Array-open
+    (modify-syntax-entry ?}  "){  " table) ; Array-close
+    (modify-syntax-entry ?$  "/   " table) ; Character literal
+    (modify-syntax-entry ?!  ".   " table) ; End message / Delimit defs
+    (modify-syntax-entry ?\; ".   " table) ; Cascade
+    (modify-syntax-entry ?|  ".   " table) ; Temporaries
+    (modify-syntax-entry ?^  ".   " table) ; Return
+    ;; Just to make sure these are not set to "w   "
+    (modify-syntax-entry ?<  ".   " table) 
+    (modify-syntax-entry ?>  ".   " table) 
+    (modify-syntax-entry ?+  ".   " table) ; math
+    (modify-syntax-entry ?-  ".   " table) ; math
+    (modify-syntax-entry ?*  ".   " table) ; math
+    (modify-syntax-entry ?/  ".2  " table) ; math
+    (modify-syntax-entry ?=  ".   " table) ; bool/assign
+    (modify-syntax-entry ?%  ".   " table) ; valid selector
+    (modify-syntax-entry ?&  ".   " table) ; boolean
+    (modify-syntax-entry ?\\ ".   " table) ; ???
+    (modify-syntax-entry ?~  ".   " table) ; misc. selector
+    (modify-syntax-entry ?@  ".   " table) ; Point
+    (modify-syntax-entry ?,  ".   " table) ; concat
+    table)
+  "Syntax table used by Smalltalk mode")
 
 (define-derived-mode shampoo-code-mode
   text-mode "Shampoo code"
   (set (make-local-variable 'font-lock-defaults)  
-       smalltalk-font-lock-keywords-list))
+       shampoo-smalltalk-font-lock-keywords-list)
+  (set-syntax-table shampoo-smalltalk-mode-syntax-table))
 
 (defun shampoo-compile-code ()
   (interactive)
