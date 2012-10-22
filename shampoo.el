@@ -164,7 +164,6 @@
             (insert text)
             (newline))))
       (goto-char (point-min))
-      (forward-line)
       (when (boundp 'dependent-buffer)
         (shampoo-open-from-list))
       (when (and (boundp 'update-source-buffer) force-update-buffer)
