@@ -87,7 +87,17 @@
   (when (boundp 'update-source-buffer)
     (funcall update-source-buffer)))
 
+(defun shampoo-list-on-click (event)
+  (interactive "e")
+  (let ((window (posn-window (event-end event)))
+        (pos    (posn-point (event-end event))))
+    (when (windowp window)
+      (with-current-buffer (window-buffer window)
+        (goto-char pos)
+        (shampoo-list-on-select)))))
+
 (define-key shampoo-list-mode-map [return]   'shampoo-list-on-select)
+(define-key shampoo-list-mode-map [mouse-1]  'shampoo-list-on-click)
 (define-key shampoo-list-mode-map "\C-c\C-t" 'shampoo-toggle-side)
 
 (defun shampoo-namespaces-set-current-item (item)
