@@ -179,6 +179,8 @@
         update-source-buffer 'shampoo-cats-update-source-buffer
         pre-insert-hook      'shampoo-cats-pre-insert-hook))
 
+(define-key shampoo-cats-list-mode-map [header-line mouse-1] 'shampoo-toggle-side)
+
 (defun shampoo-methods-set-current-item (item)
   (with-~shampoo~
    (shampoo-update-header-at
