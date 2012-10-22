@@ -5,6 +5,8 @@
 ;; This software is released under terms of the MIT license,
 ;; please refer to the LICENSE file for details.
 
+(require 'cl)
+
 (defun make-shampoo-dict ()
   (make-hash-table))
 
