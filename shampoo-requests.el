@@ -97,6 +97,12 @@
 (defun shampoo-wrap-rq-items (type values)
   (mapcar (shampoo-curry 'shampoo-make-rq-item type) values))
 
+(defun* shampoo-make-remove-class-rq (&key id ns class)
+  (shampoo-xml
+   'request
+   `(:id ,id :type "RemoveClass"
+     :namespace ,ns :class ,class)))
+
 (provide 'shampoo-requests)
 
 ;;; shampoo-requests.el ends here.

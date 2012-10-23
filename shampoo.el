@@ -193,10 +193,9 @@
 
 (defun* shampoo-reload-class-list (&optional open-then)
   (let ((request-id (shampoo-give-id)))
-    (when open-then
-      (shampoo-subscribe
-       request-id
-       (shampoo-make-class-opener open-then)))
+    (shampoo-subscribe
+     request-id
+     (shampoo-make-class-opener open-then))
     (shampoo-send-message
      (shampoo-make-classes-rq
       :id request-id

@@ -10,6 +10,7 @@
 (require 'shampoo-state)
 (require 'shampoo-regexp)
 (require 'shampoo-utils)
+(require 'shampoo-requests)
 (require 'shampoo-response)
 
 (defconst *class-pattern*
@@ -133,6 +134,19 @@
     (if (shampoo-side-is :instance)
         (shampoo-print-class-instance-from-response resp)
       (shampoo-print-class-class-from-response resp))))
+
+(defun shampoo-remove-class (class-name)
+  (let ((request-id (shampoo-give-id)))
+    (shampoo-subscribe
+     request-id
+     (lambda (resp)
+       (when (shampoo-response-is-success resp)
+         (shampoo-reload-class-list))))
+    (shampoo-send-message
+     (shampoo-make-remove-class-rq
+      :id request-id
+      :ns (shampoo-get-current-namespace)
+      :class class-name))))
 
 (provide 'shampoo-compile)
 

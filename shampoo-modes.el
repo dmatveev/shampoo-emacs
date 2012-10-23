@@ -10,6 +10,7 @@
 (require 'shampoo-state)
 (require 'shampoo-faces)
 (require 'shampoo-utils)
+(require 'shampoo-compile)
 
 (define-derived-mode shampoo-working-mode
   text-mode "Shampoo mode for the working buffer"
@@ -25,6 +26,7 @@
   (make-local-variable 'update-source-buffer)
   (make-local-variable 'force-update-buffer)
   (make-local-variable 'code-compile)
+  (make-local-variable 'remove-item)
   (setq force-update-buffer nil
         code-compile 'shampoo-compile-method))
 
@@ -38,12 +40,16 @@
   (save-excursion
     (set-buffer (get-buffer list-buff-name))
     (goto-char (point-min))
-    (while (search-forward item nil t)
-      (if (equal item (shampoo-this-line))
-          (progn
-            (shampoo-open-from-list)
-            (return))))))
-
+    (if (null item)
+        ;; Just open the fist item
+        (shampoo-list-on-select)
+      ;; Search for the specified one
+      (while (search-forward item nil t)
+        (if (equal item (shampoo-this-line))
+            (progn
+              (shampoo-open-from-list)
+              (return)))))))
+  
 (defun shampoo-open-from-list ()
   (interactive)
   (let ((this-line (shampoo-this-line)))
@@ -96,9 +102,15 @@
         (goto-char pos)
         (shampoo-list-on-select)))))
 
+(defun shampoo-list-remove-item ()
+  (interactive)
+  (when (boundp 'remove-item)
+    (funcall remove-item (shampoo-this-line))))
+
 (define-key shampoo-list-mode-map [return]   'shampoo-list-on-select)
 (define-key shampoo-list-mode-map [mouse-1]  'shampoo-list-on-click)
 (define-key shampoo-list-mode-map "\C-c\C-t" 'shampoo-toggle-side)
+(define-key shampoo-list-mode-map "\C-c\C-d" 'shampoo-list-remove-item)
 
 (defun shampoo-namespaces-set-current-item (item)
   (with-~shampoo~
@@ -148,7 +160,8 @@
         produce-request      'shampoo-classes-produce-request
         dependent-buffer     "*shampoo-categories*"
         update-source-buffer 'shampoo-classes-update-source-buffer
-        code-compile         'shampoo-compile-class))
+        code-compile         'shampoo-compile-class
+        remove-item          'shampoo-remove-class))
 
 (defun shampoo-cats-produce-request (item)
   (shampoo-make-methods-rq
