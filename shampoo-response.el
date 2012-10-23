@@ -5,6 +5,7 @@
 ;; This software is released under terms of the MIT license,
 ;; please refer to the LICENSE file for details.
 
+(require 'cl)
 (require 'shampoo-xml)
 
 ;; Currently response data is represented as a result of
