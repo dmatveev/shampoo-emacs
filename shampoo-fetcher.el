@@ -65,7 +65,7 @@
           ; (message "Parsed ok!")
           (let ((len
                  (string-to-number (shampoo-regexp-extract 0 parsed))))
-            (beginning-of-buffer)
+            (goto-char (point-min))
             (loop repeat 2 do (shampoo-delete-this-line))
             (shampoo-fetcher-fsm-switch-to-payload fsm len)))
       (erase-buffer)))
@@ -78,7 +78,7 @@
          (str (buffer-substring (point) end)))
     (save-excursion
       (delete-region cur end)
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (shampoo-delete-this-line))
     (shampoo-fetcher-fsm-switch-to-header fsm)
     str))
@@ -93,29 +93,26 @@
            (shampoo-fetcher-fsm-process-payload fsm)))))
 
 (defun shampoo-fetcher-process (str)
-  (save-excursion
-    (set-buffer (shampoo-fetcher-buffer))
-    (end-of-buffer)
+  (with-current-buffer (shampoo-fetcher-buffer)
+    (goto-char (point-max))
     (insert str)
-    (beginning-of-buffer)
-    (remove-if
-     'null
-     (loop while (shampoo-fetcher-can-process buflocal-fsm)
-           collect (shampoo-fetcher-fsm-process buflocal-fsm)))))
+    (goto-char (point-min))
+    (loop while (shampoo-fetcher-can-process buflocal-fsm)
+          for payload = (shampoo-fetcher-fsm-process buflocal-fsm)
+          unless (null payload)
+          collect payload)))
 
 (defun shampoo-fetcher-buffer ()
   (let* ((bufname "*shampoo-working-buffer*")
          (buffer (get-buffer bufname)))
-    (if buffer buffer
-      (let ((r (get-buffer-create bufname)))
-        (save-excursion
-          (set-buffer r)
+    (or buffer
+        (with-current-buffer (get-buffer-create bufname)
           (shampoo-working-mode)
           (erase-buffer)
           (setq buflocal-fsm
                 (make-shampoo-fetcher-fsm :state :header 
-                                          :bytes-awaiting 0)))
-        r))))
+                                          :bytes-awaiting 0))
+          (current-buffer)))))
 
 (provide 'shampoo-fetcher)
 
