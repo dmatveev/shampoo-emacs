@@ -28,6 +28,10 @@
 (defun shampoo-response-attr (name resp)
   (gethash name (shampoo-response-attrs resp)))
 
+(defun shampoo-response-is-success (resp)
+  (and (equal "OperationalResponse" (shampoo-response-type resp))
+       (equal "success" (shampoo-response-attr 'status resp))))
+
 (defun shampoo-response-items (resp)
   (shampoo-response-data resp))
 

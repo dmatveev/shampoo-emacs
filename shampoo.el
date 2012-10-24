@@ -191,24 +191,39 @@
     (lambda (resp)
       (shampoo-open-at-list "*shampoo-classes*" class))))
 
+(defun shampoo-make-category-opener (cat-to-open)
+  (lexical-let ((cat cat-to-open))
+    (lambda (resp)
+      (shampoo-open-at-list "*shampoo-categories*" cat))))
+
+(defun* shampoo-make-class-reloader (&optional class-to-open)
+  (lexical-let ((open-then class-to-open))
+    (lambda (resp)
+      (when (shampoo-response-is-success resp)
+        (shampoo-reload-class-list open-then)))))
+  
 (defun* shampoo-reload-class-list (&optional open-then)
   (let ((request-id (shampoo-give-id)))
-    (when open-then
-      (shampoo-subscribe
-       request-id
-       (shampoo-make-class-opener open-then)))
+    (shampoo-subscribe
+     request-id
+     (shampoo-make-class-opener open-then))
     (shampoo-send-message
      (shampoo-make-classes-rq
       :id request-id
       :ns (shampoo-get-current-namespace)))))
 
-(defun* shampoo-reload-categories-list (&optional open-then)
-  (shampoo-send-message
-   (shampoo-make-cats-rq
-    :id (shampoo-give-id)
-    :ns (shampoo-get-current-namespace)
-    :class (shampoo-get-current-class)
-    :side (shampoo-side))))
+(defun* shampoo-reload-categories-list (&key open-then need-open)
+  (let ((request-id (shampoo-give-id)))
+    (when need-open
+      (shampoo-subscribe
+       request-id
+       (shampoo-make-category-opener open-then)))
+    (shampoo-send-message
+     (shampoo-make-cats-rq
+      :id request-id
+      :ns (shampoo-get-current-namespace)
+      :class (shampoo-get-current-class)
+      :side (shampoo-side)))))
 
 (defun shampoo-handle-incoming (str)
   (dolist (msg (shampoo-fetcher-process str))
