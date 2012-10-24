@@ -105,7 +105,9 @@
 (defun shampoo-list-remove-item ()
   (interactive)
   (when (boundp 'remove-item)
-    (funcall remove-item (shampoo-this-line))))
+    (let ((this-line (shampoo-this-line)))
+      (when (not (equal this-line ""))
+        (funcall remove-item this-line)))))
 
 (define-key shampoo-list-mode-map [return]   'shampoo-list-on-select)
 (define-key shampoo-list-mode-map [mouse-1]  'shampoo-list-on-click)
@@ -214,9 +216,10 @@
 
 (define-derived-mode shampoo-methods-list-mode
   shampoo-list-mode "Shampoo methods"
-  (setq set-current-item 'shampoo-methods-set-current-item
-        produce-request  'shampoo-methods-produce-request
-        update-source-buffer 'shampoo-open-from-list))
+  (setq set-current-item     'shampoo-methods-set-current-item
+        produce-request      'shampoo-methods-produce-request
+        update-source-buffer 'shampoo-open-from-list
+        remove-item          'shampoo-remove-method))
 
 (defun shampoo-open-from-buffer-helper (buffer-name)
   (when buffer-name

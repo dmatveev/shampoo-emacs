@@ -32,7 +32,7 @@
   '(("instanceVariableNames:" . instvar)))
 
 (defun* shampoo-parse-message (&key code pattern bindings to-split)
-  (let* ((data (make-shampoo-dict))
+  (let* ((data   (make-shampoo-dict))
          (binder (shampoo-dict-binder-for-regexp data)))
     (if (shampoo-regexp-parse-and-bind code pattern bindings binder)
         (shampoo-dict-apply-many to-split 'shampoo-split-string data)
@@ -41,39 +41,47 @@
   
 (defun shampoo-parse-subclassing-message (code)
   (shampoo-parse-message
-   :code code
-   :pattern *class-pattern*
+   :code     code
+   :pattern  *class-pattern*
    :bindings '(:super :name :instvars :classvars :pooldicts :category)
    :to-split '(:instvars :classvars :pooldicts)))
 
 (defun shampoo-compile-class-instance (class-data)
   (when class-data
-    (shampoo-send-message
-     (shampoo-make-compile-instance-rq
-      :id (shampoo-give-id)
-      :ss "Smalltalk"
-      :side (shampoo-side)
-      :ns (shampoo-get-current-namespace)
-      :desc class-data))
-    (shampoo-reload-class-list (shampoo-dict-get :name class-data))))
+    (let ((request-id (shampoo-give-id)))
+      (shampoo-subscribe
+       request-id
+       (shampoo-make-class-reloader
+        (shampoo-dict-get :name class-data)))
+      (shampoo-send-message
+       (shampoo-make-compile-instance-rq
+        :id   request-id
+        :ss   "Smalltalk"
+        :side (shampoo-side)
+        :ns   (shampoo-get-current-namespace)
+        :desc class-data)))))
   
 (defun shampoo-parse-class-side-message (code)
   (shampoo-parse-message
-   :code code
-   :pattern *class-side-pattern*
+   :code     code
+   :pattern  *class-side-pattern*
    :bindings '(:name :instvars)
    :to-split '(:instvars)))
                                  
 (defun shampoo-compile-class-class (class-data)
   (when class-data
-    (shampoo-send-message
-     (shampoo-make-compile-class-rq
-      :id (shampoo-give-id)
-      :ss "Smalltalk"
-      :side (shampoo-side)
-      :ns (shampoo-get-current-namespace)
-      :desc class-data))
-    (shampoo-reload-class-list (shampoo-dict-get :name class-data))))
+    (let ((request-id (shampoo-give-id)))
+      (shampoo-subscribe
+       request-id
+       (shampoo-make-class-reloader
+        (shampoo-dict-get :name class-data)))
+      (shampoo-send-message
+       (shampoo-make-compile-class-rq
+        :id   request-id
+        :ss   "Smalltalk"
+        :side (shampoo-side)
+        :ns   (shampoo-get-current-namespace)
+        :desc class-data)))))
 
 (defun shampoo-compile-class ()
   (interactive)
@@ -86,20 +94,25 @@
 
 (defun shampoo-compile-method ()
   (interactive)
-  (shampoo-send-message
-   (shampoo-make-compile-method-rq
-    :id (shampoo-give-id)
-    :ns (shampoo-get-current-namespace)
-    :class (shampoo-get-current-class)
-    :side (shampoo-side)
-    :code (shampoo-buffer-contents "*shampoo-code*")))
-  (shampoo-reload-categories-list))
+  (let ((request-id (shampoo-give-id)))
+    (shampoo-subscribe
+     request-id
+     (lambda (resp)
+       (when (shampoo-response-is-success resp)
+           (shampoo-reload-categories-list :need-open nil))))
+    (shampoo-send-message
+     (shampoo-make-compile-method-rq
+      :id    request-id
+      :ns    (shampoo-get-current-namespace)
+      :class (shampoo-get-current-class)
+      :side  (shampoo-side)
+      :code  (shampoo-buffer-contents "*shampoo-code*")))))
 
 (defun shampoo-print-class-message-from-response (template resp)
   (dolist (each template)
     (let* ((items (shampoo-response-items-named (cdr each) resp))
-           (strs (mapcar 'shampoo-response-aggr-item items))
-           (text (if strs (shampoo-join-strings " " strs) "")))
+           (strs  (mapcar 'shampoo-response-aggr-item items))
+           (text  (if strs (shampoo-join-strings " " strs) "")))
       (insert (format "    %s '%s'"  (car each) text))
       (newline))))
 
@@ -144,10 +157,26 @@
          (shampoo-reload-class-list))))
     (shampoo-send-message
      (shampoo-make-remove-class-rq
-      :id request-id
-      :ns (shampoo-get-current-namespace)
+      :id    request-id
+      :ns    (shampoo-get-current-namespace)
       :class class-name))))
 
+(defun shampoo-remove-method (method-selector)
+  (let ((request-id (shampoo-give-id)))
+    (shampoo-subscribe
+     request-id
+     (lambda (resp)
+       (when (shampoo-response-is-success resp)
+           (shampoo-reload-categories-list :open-then nil
+                                           :need-open t))))
+    (shampoo-send-message
+     (shampoo-make-remove-method-rq
+      :id     request-id
+      :ns     (shampoo-get-current-namespace)
+      :class  (shampoo-get-current-class)
+      :side   (shampoo-side)
+      :method method-selector))))
+  
 (provide 'shampoo-compile)
 
 ;;; shampoo-compile.el ends here.
