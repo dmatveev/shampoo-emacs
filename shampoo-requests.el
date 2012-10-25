@@ -78,11 +78,11 @@
      nil
      (shampoo-wrap-rq-items 'instvar inst))))
 
-(defun* shampoo-make-compile-method-rq (&key id ns class side code)
+(defun* shampoo-make-compile-method-rq (&key id ns class side category code)
   (shampoo-xml
    'request
    `(:id ,id :type "CompileMethod"
-     :namespace ,ns :class ,class :side ,side)
+     :namespace ,ns :class ,class :side ,side :category ,category)
    code))
 
 (defun* shampoo-make-eval-rq (&key id type code)
@@ -108,6 +108,21 @@
    'request
    `(:id ,id :type "RemoveMethod"
      :namespace ,ns :class ,class :side ,side :method ,method)))
+
+(defun* shampoo-make-remove-category-rq
+    (&key id ns class side category)
+  (shampoo-xml
+   'request
+   `(:id ,id :type "RemoveCategory"
+     :namespace ,ns :class ,class :side ,side :category ,category)))
+
+(defun* shampoo-make-change-category-rq
+    (&key id ns class side category method)
+  (shampoo-xml
+   'request
+   `(:id ,id :type "ChangeCategory"
+     :namespace ,ns :class ,class :side ,side
+     :category ,category :method ,method)))
 
 (provide 'shampoo-requests)
 

@@ -165,6 +165,10 @@
         code-compile         'shampoo-compile-class
         remove-item          'shampoo-remove-class))
 
+(defun shampoo-cats-set-current-item (item)
+  (with-~shampoo~
+   (setf (shampoo-current-category ~shampoo~) item)))
+
 (defun shampoo-cats-produce-request (item)
   (shampoo-make-methods-rq
    :id (shampoo-give-id)
@@ -189,10 +193,12 @@
 
 (define-derived-mode shampoo-cats-list-mode
   shampoo-list-mode "Shampoo categories"
-  (setq produce-request      'shampoo-cats-produce-request
+  (setq set-current-item     'shampoo-cats-set-current-item
+        produce-request      'shampoo-cats-produce-request
         dependent-buffer     "*shampoo-methods*"
         update-source-buffer 'shampoo-cats-update-source-buffer
-        pre-insert-hook      'shampoo-cats-pre-insert-hook))
+        pre-insert-hook      'shampoo-cats-pre-insert-hook
+        remove-item          'shampoo-remove-category))
 
 (define-key shampoo-cats-list-mode-map [header-line mouse-1] 'shampoo-toggle-side)
 
@@ -220,6 +226,17 @@
         produce-request      'shampoo-methods-produce-request
         update-source-buffer 'shampoo-open-from-list
         remove-item          'shampoo-remove-method))
+
+(defun shampoo-change-method-category-from-list ()
+  (interactive)
+  (let ((this-method (shampoo-this-line)))
+    (when (not (equal "" this-method))
+      (shampoo-change-method-category this-method))))
+
+(define-key
+  shampoo-methods-list-mode-map
+  "\C-cm"
+  'shampoo-change-method-category-from-list)
 
 (defun shampoo-open-from-buffer-helper (buffer-name)
   (when buffer-name

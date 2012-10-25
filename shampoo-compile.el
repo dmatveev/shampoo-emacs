@@ -94,19 +94,23 @@
 
 (defun shampoo-compile-method ()
   (interactive)
-  (let ((request-id (shampoo-give-id)))
+  (let ((request-id  (shampoo-give-id))
+        (current-cat (shampoo-get-current-category)))
     (shampoo-subscribe
      request-id
-     (lambda (resp)
-       (when (shampoo-response-is-success resp)
-           (shampoo-reload-categories-list :need-open nil))))
+     (lexical-let ((cat current-cat))
+       (lambda (resp)
+         (when (shampoo-response-is-success resp)
+           (shampoo-reload-categories-list :open-then cat
+                                           :need-open t)))))
     (shampoo-send-message
      (shampoo-make-compile-method-rq
-      :id    request-id
-      :ns    (shampoo-get-current-namespace)
-      :class (shampoo-get-current-class)
-      :side  (shampoo-side)
-      :code  (shampoo-buffer-contents "*shampoo-code*")))))
+      :id       request-id
+      :ns       (shampoo-get-current-namespace)
+      :class    (shampoo-get-current-class)
+      :side     (shampoo-side)
+      :category current-cat
+      :code     (shampoo-buffer-contents "*shampoo-code*")))))
 
 (defun shampoo-print-class-message-from-response (template resp)
   (dolist (each template)
@@ -182,7 +186,45 @@
         :class  (shampoo-get-current-class)
         :side   (shampoo-side)
         :method method-selector)))))
+
+(defun shampoo-remove-category (category)
+  (when (yes-or-no-p
+         (format "Are you sure you want to remove category \"%s\"? "
+                 category))
+    (let ((request-id (shampoo-give-id)))
+      (shampoo-subscribe
+       request-id
+       (lambda (resp)
+         (when (shampoo-response-is-success resp)
+           (shampoo-reload-categories-list :open-then nil
+                                           :need-open t))))
+      (shampoo-send-message
+       (shampoo-make-remove-category-rq
+        :id       request-id
+        :ns       (shampoo-get-current-namespace)
+        :class    (shampoo-get-current-class)
+        :side     (shampoo-side)
+        :category category)))))
   
+(defun shampoo-change-method-category (method)
+  (let ((request-id (shampoo-give-id))
+        (target-cat (read-string "Change method's category to: ")))
+    (shampoo-subscribe
+     request-id
+     (lexical-let ((cat target-cat))
+       (lambda (resp)
+         (when (shampoo-response-is-success resp)
+           (shampoo-reload-categories-list :open-then cat
+                                           :need-open t)))))
+    (shampoo-send-message
+     (shampoo-make-change-category-rq
+      :id       request-id
+      :ns       (shampoo-get-current-namespace)
+      :class    (shampoo-get-current-class)
+      :side     (shampoo-side)
+      :method   method
+      :category target-cat))))
+
 (provide 'shampoo-compile)
   
 ;;; shampoo-compile.el ends here.
