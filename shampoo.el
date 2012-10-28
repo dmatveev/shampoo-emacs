@@ -140,11 +140,10 @@
     (insert (shampoo-response-enclosed-string resp))))
 
 (defun shampoo-handle-operational-response (resp)
-  (let ((status (shampoo-response-attr 'status resp)))
-    (message
-     (concat "Shampoo: operation "
-             (cond ((equal status "success") "successful")
-                   ((equal status "failure") "failed"))))))
+  (if (shampoo-response-is-success resp)
+      (message "Shampoo: operation successful")
+    (message "Shampoo: operation failed -- %s"
+             (shampoo-response-enclosed-string resp))))
 
 (defun shampoo-buffer-for (response-type)
   (cdr (assoc response-type *shampoo-buffer-info*)))
