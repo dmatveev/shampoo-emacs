@@ -225,6 +225,26 @@
       :method   method
       :category target-cat))))
 
+(defun shampoo-rename-category (category)
+  (let* ((request-id (shampoo-give-id))
+         (prompt     (format "Rename category \"%s\" to: " category))
+         (to-cat     (read-string prompt)))
+    (shampoo-subscribe
+     request-id
+     (lexical-let ((cat to-cat))
+       (lambda (resp)
+         (when (shampoo-response-is-success resp)
+           (shampoo-reload-categories-list :open-then cat
+                                           :need-open t)))))
+    (shampoo-send-message
+     (shampoo-make-rename-category-rq
+      :id       request-id
+      :ns       (shampoo-get-current-namespace)
+      :class    (shampoo-get-current-class)
+      :side     (shampoo-side)
+      :from     category
+      :to       to-cat))))
+
 (provide 'shampoo-compile)
   
 ;;; shampoo-compile.el ends here.

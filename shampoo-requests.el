@@ -124,6 +124,14 @@
      :namespace ,ns :class ,class :side ,side
      :category ,category :method ,method)))
 
+(defun* shampoo-make-rename-category-rq
+    (&key id ns class side from to)
+  (shampoo-xml
+   'request
+   `(:id ,id :type "RenameCategory"
+     :namespace ,ns :class ,class :side ,side
+     :from ,from :to ,to)))
+
 (provide 'shampoo-requests)
 
 ;;; shampoo-requests.el ends here.

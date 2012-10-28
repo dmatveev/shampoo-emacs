@@ -22,7 +22,8 @@
 
     <category: '%s'>
 	| temporary variable names |
-	statements\n]"
+	statements
+]"
     (let ((cat (shampoo-get-current-category)))
       (if (equal cat "*") "still unclassified" cat))))
 

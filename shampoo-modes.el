@@ -109,10 +109,23 @@
       (when (not (equal this-line ""))
         (funcall remove-item this-line)))))
 
-(define-key shampoo-list-mode-map [return]   'shampoo-list-on-select)
-(define-key shampoo-list-mode-map [mouse-1]  'shampoo-list-on-click)
-(define-key shampoo-list-mode-map "\C-c\C-t" 'shampoo-toggle-side)
-(define-key shampoo-list-mode-map "\C-c\C-d" 'shampoo-list-remove-item)
+(define-key
+  shampoo-list-mode-map
+  [return]
+  'shampoo-list-on-select)
+
+(define-key shampoo-list-mode-map
+  [mouse-1]
+  'shampoo-list-on-click)
+
+(define-key shampoo-list-mode-map
+  "\C-c\C-t"
+  'shampoo-toggle-side)
+
+(define-key
+  shampoo-list-mode-map
+  "\C-c\C-d"
+  'shampoo-list-remove-item)
 
 (defun shampoo-namespaces-set-current-item (item)
   (with-~shampoo~
@@ -200,7 +213,21 @@
         pre-insert-hook      'shampoo-cats-pre-insert-hook
         remove-item          'shampoo-remove-category))
 
-(define-key shampoo-cats-list-mode-map [header-line mouse-1] 'shampoo-toggle-side)
+(define-key
+  shampoo-cats-list-mode-map
+  [header-line mouse-1]
+  'shampoo-toggle-side)
+
+(define-key
+  shampoo-cats-list-mode-map
+  "\C-cm"
+  'shampoo-rename-category-from-list)
+
+(defun shampoo-rename-category-from-list ()
+  (interactive)
+  (let ((this-category (shampoo-this-line)))
+    (when (not (equal "" this-category))
+      (shampoo-rename-category this-category))))
 
 (defun shampoo-methods-set-current-item (item)
   (with-~shampoo~
@@ -227,16 +254,16 @@
         update-source-buffer 'shampoo-open-from-list
         remove-item          'shampoo-remove-method))
 
+(define-key
+  shampoo-methods-list-mode-map
+  "\C-cm"
+  'shampoo-change-method-category-from-list)
+
 (defun shampoo-change-method-category-from-list ()
   (interactive)
   (let ((this-method (shampoo-this-line)))
     (when (not (equal "" this-method))
       (shampoo-change-method-category this-method))))
-
-(define-key
-  shampoo-methods-list-mode-map
-  "\C-cm"
-  'shampoo-change-method-category-from-list)
 
 (defun shampoo-open-from-buffer-helper (buffer-name)
   (when buffer-name
