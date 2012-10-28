@@ -70,6 +70,7 @@
   (shampoo-update-current-side)
   (save-excursion
     (set-buffer (get-buffer "*shampoo-classes*"))
+    (setq *shampoo-code-compile* code-compile)
     (shampoo-send-message
      (funcall produce-request (shampoo-this-line)))
     (funcall update-source-buffer)))
