@@ -109,10 +109,23 @@
       (when (not (equal this-line ""))
         (funcall remove-item this-line)))))
 
-(define-key shampoo-list-mode-map [return]   'shampoo-list-on-select)
-(define-key shampoo-list-mode-map [mouse-1]  'shampoo-list-on-click)
-(define-key shampoo-list-mode-map "\C-c\C-t" 'shampoo-toggle-side)
-(define-key shampoo-list-mode-map "\C-c\C-d" 'shampoo-list-remove-item)
+(define-key
+  shampoo-list-mode-map
+  [return]
+  'shampoo-list-on-select)
+
+(define-key shampoo-list-mode-map
+  [mouse-1]
+  'shampoo-list-on-click)
+
+(define-key shampoo-list-mode-map
+  "\C-c\C-t"
+  'shampoo-toggle-side)
+
+(define-key
+  shampoo-list-mode-map
+  "\C-c\C-d"
+  'shampoo-list-remove-item)
 
 (defun shampoo-namespaces-set-current-item (item)
   (with-~shampoo~
@@ -165,6 +178,10 @@
         code-compile         'shampoo-compile-class
         remove-item          'shampoo-remove-class))
 
+(defun shampoo-cats-set-current-item (item)
+  (with-~shampoo~
+   (setf (shampoo-current-category ~shampoo~) item)))
+
 (defun shampoo-cats-produce-request (item)
   (shampoo-make-methods-rq
    :id (shampoo-give-id)
@@ -180,7 +197,7 @@
     (erase-buffer)
     (with-~shampoo~
      (insert
-      (shampoo-dialect-specific-message-template
+      (shampoo-dialect-message-template
        (shampoo-current-smalltalk ~shampoo~))))))
 
 (defun shampoo-cats-pre-insert-hook ()
@@ -189,12 +206,28 @@
 
 (define-derived-mode shampoo-cats-list-mode
   shampoo-list-mode "Shampoo categories"
-  (setq produce-request      'shampoo-cats-produce-request
+  (setq set-current-item     'shampoo-cats-set-current-item
+        produce-request      'shampoo-cats-produce-request
         dependent-buffer     "*shampoo-methods*"
         update-source-buffer 'shampoo-cats-update-source-buffer
-        pre-insert-hook      'shampoo-cats-pre-insert-hook))
+        pre-insert-hook      'shampoo-cats-pre-insert-hook
+        remove-item          'shampoo-remove-category))
 
-(define-key shampoo-cats-list-mode-map [header-line mouse-1] 'shampoo-toggle-side)
+(define-key
+  shampoo-cats-list-mode-map
+  [header-line mouse-1]
+  'shampoo-toggle-side)
+
+(define-key
+  shampoo-cats-list-mode-map
+  "\C-cm"
+  'shampoo-rename-category-from-list)
+
+(defun shampoo-rename-category-from-list ()
+  (interactive)
+  (let ((this-category (shampoo-this-line)))
+    (when (not (equal "" this-category))
+      (shampoo-rename-category this-category))))
 
 (defun shampoo-methods-set-current-item (item)
   (with-~shampoo~
@@ -220,6 +253,17 @@
         produce-request      'shampoo-methods-produce-request
         update-source-buffer 'shampoo-open-from-list
         remove-item          'shampoo-remove-method))
+
+(define-key
+  shampoo-methods-list-mode-map
+  "\C-cm"
+  'shampoo-change-method-category-from-list)
+
+(defun shampoo-change-method-category-from-list ()
+  (interactive)
+  (let ((this-method (shampoo-this-line)))
+    (when (not (equal "" this-method))
+      (shampoo-change-method-category this-method))))
 
 (defun shampoo-open-from-buffer-helper (buffer-name)
   (when buffer-name
