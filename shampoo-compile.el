@@ -14,7 +14,7 @@
 (require 'shampoo-response)
 
 (defconst *class-pattern*
-  '(:Wd :sp "subclass:" :sp "#" :Wd
+  '(:Wa :sp "subclass:" :sp "#" :Wd
         :sp "instanceVariableNames:" :sp "'" :Ws "'"
         :sp "classVariableNames:"    :sp "'" :Ws "'"
         :sp "poolDictionaries:"      :sp "'" :Ws "'"
@@ -48,18 +48,36 @@
 
 (defun shampoo-compile-class-instance (class-data)
   (when class-data
-    (let ((request-id (shampoo-give-id)))
-      (shampoo-subscribe
-       request-id
-       (shampoo-make-class-reloader
-        (shampoo-dict-get :name class-data)))
-      (shampoo-send-message
-       (shampoo-make-compile-instance-rq
-        :id   request-id
-        :ss   "Smalltalk"
-        :side (shampoo-side)
-        :ns   (shampoo-get-current-namespace)
-        :desc class-data)))))
+    (multiple-value-bind (superspace superclass)
+        (shampoo-infer-superspace class-data)
+      (let ((request-id (shampoo-give-id)))
+        (shampoo-subscribe
+         request-id
+         (shampoo-make-class-reloader
+          (shampoo-dict-get :name class-data)))
+        (shampoo-dict-put
+         :key   :super
+         :value superclass
+         :into  class-data)
+        (shampoo-send-message
+         (shampoo-make-compile-instance-rq
+          :id   request-id
+          :ss   superspace
+          :side (shampoo-side)
+          :ns   (shampoo-get-current-namespace)
+          :desc class-data))))))
+
+(defun shampoo-infer-superspace (class-data)
+  (let ((info
+         (with-~shampoo~
+          (shampoo-dialect-extract-parent
+           (shampoo-current-smalltalk ~shampoo~)
+           (shampoo-dict-get :super class-data)))))
+  (multiple-value-bind (superspace superclass) info
+    (values (if (null superspace)
+                (shampoo-get-current-namespace)
+              superspace)
+            superclass))))                      
   
 (defun shampoo-parse-class-side-message (code)
   (shampoo-parse-message
