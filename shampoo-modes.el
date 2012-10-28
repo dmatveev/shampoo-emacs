@@ -184,7 +184,7 @@
     (erase-buffer)
     (with-~shampoo~
      (insert
-      (shampoo-dialect-specific-message-template
+      (shampoo-dialect-message-template
        (shampoo-current-smalltalk ~shampoo~))))))
 
 (defun shampoo-cats-pre-insert-hook ()

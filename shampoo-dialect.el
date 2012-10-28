@@ -6,6 +6,7 @@
 ;; please refer to the LICENSE file for details.
 
 (require 'shampoo-regexp)
+(require 'shampoo-state)
 
 (defstruct shampoo-dialect-specific message-template version)
 
@@ -14,14 +15,18 @@
     ("Squeak"        . shampoo-make-squeak-dialect)
     ("Pharo"         . shampoo-make-squeak-dialect)))
 
-(defconst *shampoo-gnu-smalltalk-message-template*
+(defun shampoo-gnu-smalltalk-message-template ()
+  (format
 "messageSelectorAndArgumentNames [
 	\"comment stating purpose of message\"
 
+    <category: '%s'>
 	| temporary variable names |
-	statements\n]")
+	statements\n]"
+    (let ((cat (shampoo-get-current-category)))
+      (if (equal cat "*") "still unclassified" cat))))
 
-(defconst *shampoo-squeak-message-template*
+(defun shampoo-squeak-message-template ()
 "messageSelectorAndArgumentNames
 	\"comment stating purpose of message\"
 
@@ -35,13 +40,16 @@
 
 (defun shampoo-make-gnu-dialect (version)
   (make-shampoo-dialect-specific
-   :message-template *shampoo-gnu-smalltalk-message-template*
+   :message-template 'shampoo-gnu-smalltalk-message-template
    :version version))
 
 (defun shampoo-make-squeak-dialect (version)
   (make-shampoo-dialect-specific
-   :message-template *shampoo-squeak-message-template*
+   :message-template 'shampoo-squeak-message-template
    :version version))
+
+(defun shampoo-dialect-message-template (dialect)
+  (funcall (shampoo-dialect-specific-message-template dialect)))
 
 (provide 'shampoo-dialect)
 
