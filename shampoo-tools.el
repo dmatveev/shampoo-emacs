@@ -26,9 +26,10 @@
 (defun shampoo-printit-to (buffer)
   (lexical-let ((buff buffer))
     (lambda (resp)
-      (save-excursion
-        (set-buffer buff)
-        (insert (shampoo-response-enclosed-string resp))))))
+      (when (not (shampoo-response-is-failure resp))
+        (save-excursion
+          (set-buffer buff)
+          (insert (shampoo-response-enclosed-string resp)))))))
 
 (defun shampoo-print-it (from to)
   (interactive "r")

@@ -32,6 +32,10 @@
   (and (equal "OperationalResponse" (shampoo-response-type resp))
        (equal "success" (shampoo-response-attr 'status resp))))
 
+(defun shampoo-response-is-failure (resp)
+  (and (equal "OperationalResponse" (shampoo-response-type resp))
+       (equal "failure" (shampoo-response-attr 'status resp))))
+
 (defun shampoo-response-items (resp)
   (shampoo-response-data resp))
 
