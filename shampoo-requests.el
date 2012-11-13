@@ -132,6 +132,16 @@
      :namespace ,ns :class ,class :side ,side
      :from ,from :to ,to)))
 
+(defun* shampoo-make-fileout-namespace-rq (&key id ns split)
+  (shampoo-xml
+   'request
+   `(:id ,id :type "FileOut" :namespace ,ns :splitby ,split)))
+
+(defun* shampoo-make-fileout-class-rq (&key id ns class)
+  (shampoo-xml
+   'request
+   `(:id ,id :type "FileOut" :namespace ,ns :class ,class)))
+
 (provide 'shampoo-requests)
 
 ;;; shampoo-requests.el ends here.

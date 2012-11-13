@@ -19,6 +19,15 @@
     (set-buffer (get-buffer buffer-name))
     (buffer-substring (point-min) (point-max))))
 
+(defun shampoo-buffer-lines (buffer-name)
+  (save-excursion
+    (set-buffer (get-buffer buffer-name))
+    (goto-char (point-min))
+    (let ((total (shampoo-buffer-num-lines)))
+      (loop while (/= total (shampoo-this-line-no))
+            collect (shampoo-this-line)
+            do (forward-line)))))
+
 (defun shampoo-this-line ()
   (buffer-substring (line-beginning-position) (line-end-position)))
 
@@ -81,3 +90,4 @@
 (provide 'shampoo-utils)
 
 ;;; shampoo-utils.el ends here.
+(cons (shampoo-this-line-no) (shampoo-buffer-num-lines))

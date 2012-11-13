@@ -49,6 +49,11 @@
   (when (listp data-item)
     (caddr data-item)))
 
+(defun shampoo-response-is-last-in-sequence (resp)
+  (if (equal "FileOut" (shampoo-response-type resp))
+      (equal "true" (shampoo-response-attr 'last resp))
+    t))
+
 (provide 'shampoo-response)
 
 ;;; shampoo-response.el ends here.

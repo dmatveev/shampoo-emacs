@@ -34,7 +34,8 @@
     ("Info"                . shampoo-handle-server-info-response)
     ("PrintIt"             . shampoo-handle-printit)
     ("Echo"                . shampoo-handle-transcript)
-    ("Magic"               . shampoo-handle-auth)))
+    ("Magic"               . shampoo-handle-auth)
+    ("FileOut"             . shampoo-handle-fileout)))
 
 (defun shampoo-next-id (base)
   (let ((next-id (1+ base)))
@@ -109,6 +110,10 @@
   ;; do nothing, all work is done in the subscriber lambda.
   )
 
+(defun shampoo-handle-fileout (resp)
+  ;; do nothing, all work is done in the subscriber lambda.
+  )
+
 (defun shampoo-handle-transcript (resp)
   (let ((buffer (get-buffer "*shampoo-transcript*")))
     (when (null buffer)
@@ -176,7 +181,8 @@
         (funcall handler response)
       (shampoo-handle-aggregate-response response buffer))
     (shampoo-inform response)
-    (shampoo-release-id (shampoo-response-id response))))
+    (when (shampoo-response-is-last-in-sequence response)
+      (shampoo-release-id (shampoo-response-id response)))))
   
 (defun shampoo-send-message (msg)
   (with-~shampoo~
