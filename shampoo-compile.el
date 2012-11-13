@@ -166,7 +166,10 @@
     (erase-buffer)
     (setq header-line-format (shampoo-make-header))
     (if (shampoo-side-is :instance)
-        (shampoo-print-class-instance-from-response resp)
+        (with-~shampoo~
+          (shampoo-print-class-instance-from-response resp)
+          (setf (shampoo-current-class-category ~shampoo~)
+                (shampoo-response-attr 'category resp)))
       (shampoo-print-class-class-from-response resp))))
 
 (defun shampoo-remove-class (class-name)

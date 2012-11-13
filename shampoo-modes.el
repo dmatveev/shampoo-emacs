@@ -150,7 +150,7 @@
   (let ((attrs (make-hash-table)))
     (puthash 'superclass "Object" attrs)
     (puthash 'class      "NameOfSubclass" attrs)
-    (puthash 'category   "" attrs)
+    (puthash 'category   (shampoo-get-current-namespace) attrs)
     (shampoo-handle-class-response
      (make-shampoo-response :attrs attrs :data '()))))
 

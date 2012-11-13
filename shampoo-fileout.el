@@ -36,9 +36,11 @@
 (defun* shampoo-fileout-get-conf
   (&key item-name items-buffer default-value no-split)
   (let* ((item-prompt (format "File out %s: " item-name))
-         (item (completing-read item-prompt
-                                (shampoo-buffer-lines items-buffer)
-                                nil t default-value))
+         (item (if items-buffer
+                   (completing-read item-prompt
+                                    (shampoo-buffer-lines items-buffer)
+                                    nil t default-value)
+                 (read-string item-prompt default-value)))
          (by   (when (not no-split)
                  (completing-read "Organize source code files by: "
                                   '("class" "category")
@@ -49,15 +51,16 @@
 (defun* shampoo-save-fileout (&key config)
   (lexical-let ((conf config))
     (lambda (response)
-      (let ((file (shampoo-response-attr 'class response)))
-        (when (null file)
-          (setq file (shampoo-response-attr 'category response)))
-        (let ((path (shampoo-fileout-build-filename file conf)))
-          (with-temp-buffer
+      (when (not (shampoo-response-is-failure response))
+        (let ((file (shampoo-response-attr 'class response)))
+          (when (null file)
+            (setq file (shampoo-response-attr 'category response)))
+          (let ((path (shampoo-fileout-build-filename file conf)))
+            (with-temp-buffer
             (insert (shampoo-response-enclosed-string response))
             (write-region nil nil path))))
-      (when (shampoo-response-is-last-in-sequence response)
-        (message "Shampoo: file out complete")))))
+        (when (shampoo-response-is-last-in-sequence response)
+          (message "Shampoo: file out complete"))))))
 
 (defun shampoo-fileout-namespace (default)
   (let ((conf (shampoo-fileout-get-conf
@@ -87,6 +90,17 @@
       :class  (shampoo-fileout-conf-item conf)))))
 
 (defun shampoo-fileout-class-category (category)
-  )
+  (let ((conf (shampoo-fileout-get-conf
+               :item-name      "category"
+               :items-buffer   nil
+               :default-value  category))
+        (id   (shampoo-give-id)))
+    (shampoo-subscribe id (shampoo-save-fileout :config conf))
+    (shampoo-send-message
+     (shampoo-make-fileout-category-rq
+      :id    id
+      :ns    (shampoo-get-current-namespace)
+      :cat   (shampoo-fileout-conf-item conf)
+      :split (shampoo-fileout-conf-splitby conf)))))
 
 (provide 'shampoo-fileout)

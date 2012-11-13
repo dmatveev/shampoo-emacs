@@ -143,6 +143,12 @@
    'request
    `(:id ,id :type "FileOut" :namespace ,ns :class ,class)))
 
+(defun* shampoo-make-fileout-category-rq (&key id ns cat split)
+  (shampoo-xml
+   'request
+   `(:id ,id :type "FileOut" :namespace ,ns
+     :category ,cat :splitby ,split)))
+
 (provide 'shampoo-requests)
 
 ;;; shampoo-requests.el ends here.

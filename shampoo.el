@@ -171,7 +171,10 @@
       (when (boundp 'dependent-buffer)
         (shampoo-open-from-list))
       (when (and (boundp 'update-source-buffer) force-update-buffer)
-        (funcall update-source-buffer)))))
+        (funcall update-source-buffer))
+      (when (equal "Namespaces" (shampoo-response-type resp))
+        (with-~shampoo~
+         (setf (shampoo-current-class-category ~shampoo~) nil))))))
 
 (defun shampoo-handle-response (response)
   (let* ((type (shampoo-response-type response))
