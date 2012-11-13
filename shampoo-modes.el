@@ -149,7 +149,8 @@
 (defun shampoo-namespaces-update-source-buffer ()
   (let ((attrs (make-hash-table)))
     (puthash 'superclass "Object" attrs)
-    (puthash 'class "NameOfSubclass" attrs)
+    (puthash 'class      "NameOfSubclass" attrs)
+    (puthash 'category   "" attrs)
     (shampoo-handle-class-response
      (make-shampoo-response :attrs attrs :data '()))))
 

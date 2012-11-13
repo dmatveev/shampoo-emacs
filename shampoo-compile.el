@@ -65,6 +65,7 @@
           :ss   superspace
           :side (shampoo-side)
           :ns   (shampoo-get-current-namespace)
+          :cat  (shampoo-dict-get :category class-data)
           :desc class-data))))))
 
 (defun shampoo-infer-superspace (class-data)
@@ -147,12 +148,10 @@
   (shampoo-print-class-message-from-response
    *shampoo-class-template*
    resp)
-  ;; TODO (shampoo-get-current-namespace) may differ from the
-  ;; actual class namespace, i.e. when user has switched to
-  ;; other namespace before the response arrived. This thing
-  ;; should be fixed.
-  (insert
-   (format "    category: '%s'" (shampoo-get-current-namespace))))
+  (insert (format
+           "    category: '%s'"
+           (shampoo-response-attr 'category resp)))
+  (newline))
 
 (defun shampoo-print-class-class-from-response (resp)
   (insert (format "%s class" (shampoo-response-attr 'class resp)))

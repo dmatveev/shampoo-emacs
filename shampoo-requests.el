@@ -51,7 +51,7 @@
      :namespace ,ns :class ,class :side ,side
      :method ,(shampoo-escape-xml method))))
 
-(defun* shampoo-make-compile-instance-rq (&key id ss side ns desc)
+(defun* shampoo-make-compile-instance-rq (&key id ss side ns cat desc)
   (let* ((inst (shampoo-dict-get :instvars  desc))
          (clss (shampoo-dict-get :classvars desc))
          (pool (shampoo-dict-get :poolvars  desc))
@@ -62,9 +62,10 @@
     (shampoo-xml
      'request
      `(:id ,id :type "CompileClass" :superspace ,ss
-       :side ,side :namespace ,ns
-       :super ,(shampoo-dict-get :super desc)
-       :class ,(shampoo-dict-get :name desc))
+       :side     ,side :namespace ,ns
+       :super    ,(shampoo-dict-get :super desc)
+       :class    ,(shampoo-dict-get :name desc)
+       :category ,cat)
      nil
      (apply (shampoo-curry 'concatenate 'list) fields))))
 
