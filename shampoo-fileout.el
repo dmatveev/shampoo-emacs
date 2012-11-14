@@ -32,7 +32,7 @@
 (defun shampoo-filename-squash (name)
   (shampoo-join-strings 
    ""
-   (mapcar 'capitalize (shampoo-split-string name))))
+   (mapcar 'shampoo-capitalize (shampoo-split-string name))))
 
 (defun shampoo-fileout-rebuild-filename (name rebuild-functions)
   (let ((result name))
@@ -78,7 +78,7 @@
           (when (not no-split)
             (completing-read "Organize source code files by: "
                              '("class" "category")
-                             nil t "class")))
+                             nil t "category")))
          (to
           (read-directory-name "Store files into directory: "))
          (funcs

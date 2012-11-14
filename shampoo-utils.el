@@ -87,7 +87,10 @@
     (lambda (&rest rest-args)
       (apply f (concatenate 'list a rest-args)))))
 
+(defun shampoo-capitalize (str)
+  (concat (capitalize (substring str 0 1))
+          (substring str 1)))
+
 (provide 'shampoo-utils)
 
 ;;; shampoo-utils.el ends here.
-(cons (shampoo-this-line-no) (shampoo-buffer-num-lines))
