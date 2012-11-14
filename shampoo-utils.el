@@ -19,6 +19,15 @@
     (set-buffer (get-buffer buffer-name))
     (buffer-substring (point-min) (point-max))))
 
+(defun shampoo-buffer-lines (buffer-name)
+  (save-excursion
+    (set-buffer (get-buffer buffer-name))
+    (goto-char (point-min))
+    (let ((total (shampoo-buffer-num-lines)))
+      (loop while (/= total (shampoo-this-line-no))
+            collect (shampoo-this-line)
+            do (forward-line)))))
+
 (defun shampoo-this-line ()
   (buffer-substring (line-beginning-position) (line-end-position)))
 
@@ -77,6 +86,10 @@
                 (a args))
     (lambda (&rest rest-args)
       (apply f (concatenate 'list a rest-args)))))
+
+(defun shampoo-capitalize (str)
+  (concat (capitalize (substring str 0 1))
+          (substring str 1)))
 
 (provide 'shampoo-utils)
 

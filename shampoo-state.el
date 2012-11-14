@@ -14,6 +14,7 @@
   connection-info
   namespace
   class
+  class-category
   category
   side
   smalltalk
@@ -71,6 +72,10 @@
   (with-~shampoo~
    (let ((cat (shampoo-current-category ~shampoo~)))
      (if cat cat "*"))))
+
+(defun shampoo-get-current-class-category ()
+  (with-~shampoo~
+   (shampoo-current-class-category ~shampoo~)))
 
 (provide 'shampoo-state)
 

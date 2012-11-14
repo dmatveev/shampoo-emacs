@@ -11,6 +11,7 @@
 (require 'shampoo-faces)
 (require 'shampoo-utils)
 (require 'shampoo-compile)
+(require 'shampoo-fileout)
 
 (define-derived-mode shampoo-working-mode
   text-mode "Shampoo mode for the working buffer"
@@ -27,6 +28,7 @@
   (make-local-variable 'force-update-buffer)
   (make-local-variable 'code-compile)
   (make-local-variable 'remove-item)
+  (make-local-variable 'fileout-item)
   (setq force-update-buffer nil
         code-compile 'shampoo-compile-method))
 
@@ -110,8 +112,14 @@
       (when (not (equal this-line ""))
         (funcall remove-item this-line)))))
 
-(define-key
-  shampoo-list-mode-map
+(defun shampoo-list-fileout-item ()
+  (interactive)
+  (when (boundp 'fileout-item)
+    (let ((this-line (shampoo-this-line)))
+      (when (not (equal this-line ""))
+        (funcall fileout-item this-line)))))
+
+(define-key shampoo-list-mode-map
   [return]
   'shampoo-list-on-select)
 
@@ -123,10 +131,13 @@
   "\C-c\C-t"
   'shampoo-toggle-side)
 
-(define-key
-  shampoo-list-mode-map
+(define-key shampoo-list-mode-map
   "\C-c\C-d"
   'shampoo-list-remove-item)
+
+(define-key shampoo-list-mode-map
+  "\C-c\C-f"
+  'shampoo-list-fileout-item)
 
 (defun shampoo-namespaces-set-current-item (item)
   (with-~shampoo~
@@ -138,7 +149,8 @@
 (defun shampoo-namespaces-update-source-buffer ()
   (let ((attrs (make-hash-table)))
     (puthash 'superclass "Object" attrs)
-    (puthash 'class "NameOfSubclass" attrs)
+    (puthash 'class      "NameOfSubclass" attrs)
+    (puthash 'category   (shampoo-get-current-namespace) attrs)
     (shampoo-handle-class-response
      (make-shampoo-response :attrs attrs :data '()))))
 
@@ -149,7 +161,8 @@
         dependent-buffer     "*shampoo-classes*"
         force-update-buffer  t
         update-source-buffer 'shampoo-namespaces-update-source-buffer
-        code-compile         'shampoo-compile-class))
+        code-compile         'shampoo-compile-class
+        fileout-item         'shampoo-fileout-namespace))
 
 (defun shampoo-classes-set-current-item (item)
   (with-~shampoo~
@@ -177,7 +190,8 @@
         dependent-buffer     "*shampoo-categories*"
         update-source-buffer 'shampoo-classes-update-source-buffer
         code-compile         'shampoo-compile-class
-        remove-item          'shampoo-remove-class))
+        remove-item          'shampoo-remove-class
+        fileout-item         'shampoo-fileout-class))
 
 (defun shampoo-cats-set-current-item (item)
   (with-~shampoo~
@@ -369,8 +383,13 @@
   (when *shampoo-code-compile*
     (funcall *shampoo-code-compile*)))
 
-(define-key shampoo-code-mode-map "\C-c\C-c" 'shampoo-compile-code)
-(define-key shampoo-code-mode-map "\C-c\C-t" 'shampoo-toggle-side)
+(define-key shampoo-code-mode-map
+  "\C-c\C-c"
+  'shampoo-compile-code)
+
+(define-key shampoo-code-mode-map
+  "\C-c\C-t"
+  'shampoo-toggle-side)
 
 (defun shampoo-jump-to (wnd)
   (lexical-let ((binding wnd))
@@ -389,8 +408,16 @@
   (define-key mode-map "\C-c]" (shampoo-jump-to :methods))
   (define-key mode-map "\C-c " (shampoo-jump-to :source)))
 
+(defun shampoo-define-fileout-keys (mode-map)
+  (define-key mode-map "\C-cfn" 'shampoo-fileout-current-namespace)
+  (define-key mode-map "\C-cfc" 'shampoo-fileout-current-class)
+  (define-key mode-map "\C-cfa" 'shampoo-fileout-current-class-category))
+
 (shampoo-define-jump-keys shampoo-list-mode-map)
 (shampoo-define-jump-keys shampoo-code-mode-map)
+
+(shampoo-define-fileout-keys shampoo-list-mode-map)
+(shampoo-define-fileout-keys shampoo-code-mode-map)
 
 (provide 'shampoo-modes)
 
