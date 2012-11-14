@@ -10,15 +10,35 @@
 (require 'shampoo-requests)
 (require 'shampoo-response)
 (require 'shampoo-utils)
+(require 'shampoo-regexp)
 
-(defstruct shampoo-fileout-conf item splitby directory)
+(defstruct shampoo-fileout-conf item splitby directory fproc)
 
 (defun shampoo-fileout-build-filename (name conf)
   (format
    "%s%s.st"
    (file-name-as-directory (shampoo-fileout-conf-directory conf))
-   name
+   (shampoo-fileout-rebuild-filename
+    name
+    (shampoo-fileout-conf-fproc conf))
    ".st"))
+
+(defun shampoo-filename-strip-package (name)
+  (let ((parsed (shampoo-regexp-parse name '(:Wd "\-" :Ws))))
+    (if parsed
+        (shampoo-regexp-extract 1 parsed)
+      name)))
+
+(defun shampoo-filename-squash (name)
+  (shampoo-join-strings 
+   ""
+   (mapcar 'capitalize (shampoo-split-string name))))
+
+(defun shampoo-fileout-rebuild-filename (name rebuild-functions)
+  (let ((result name))
+    (dolist (func rebuild-functions)
+      (setq result (funcall func result)))
+    result))
 
 (defun shampoo-fileout-current-namespace ()
   (interactive)
@@ -33,20 +53,39 @@
   (shampoo-fileout-class-category
    (shampoo-get-current-class-category)))
 
+(defun shampoo-fileout-get-fproc-conf ()
+  (let ((strip
+         (yes-or-no-p "Strip package prefix from file names? "))
+        (camel
+         (yes-or-no-p "Remove space characters from file names? ")))
+    (mapcar 'cdr
+            (remove-if
+             (lambda (p) (null (car p)))
+             (list (cons strip 'shampoo-filename-strip-package)
+                   (cons camel 'shampoo-filename-squash))))))
+
 (defun* shampoo-fileout-get-conf
   (&key item-name items-buffer default-value no-split)
-  (let* ((item-prompt (format "File out %s: " item-name))
-         (item (if items-buffer
-                   (completing-read item-prompt
-                                    (shampoo-buffer-lines items-buffer)
-                                    nil t default-value)
-                 (read-string item-prompt default-value)))
-         (by   (when (not no-split)
-                 (completing-read "Organize source code files by: "
-                                  '("class" "category")
-                                  nil t "class")))
-         (to   (read-directory-name "Store files into directory: ")))
-    (make-shampoo-fileout-conf :item item :splitby by :directory to)))
+  (let* ((item-prompt
+          (format "File out %s: " item-name))
+         (item
+          (if items-buffer
+              (completing-read item-prompt
+                               (shampoo-buffer-lines items-buffer)
+                               nil t default-value)
+            (read-string item-prompt default-value)))
+         (by
+          (when (not no-split)
+            (completing-read "Organize source code files by: "
+                             '("class" "category")
+                             nil t "class")))
+         (to
+          (read-directory-name "Store files into directory: "))
+         (funcs
+          (when (and (not (equal "class" by)) (not no-split))
+            (shampoo-fileout-get-fproc-conf))))
+    (make-shampoo-fileout-conf :item item :splitby by
+                               :directory to :fproc funcs)))
 
 (defun* shampoo-save-fileout (&key config)
   (lexical-let ((conf config))
@@ -57,8 +96,8 @@
             (setq file (shampoo-response-attr 'category response)))
           (let ((path (shampoo-fileout-build-filename file conf)))
             (with-temp-buffer
-            (insert (shampoo-response-enclosed-string response))
-            (write-region nil nil path))))
+              (insert (shampoo-response-enclosed-string response))
+              (write-region nil nil path))))
         (when (shampoo-response-is-last-in-sequence response)
           (message "Shampoo: file out complete"))))))
 
