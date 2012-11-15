@@ -21,11 +21,11 @@
 (defun shampoo-gnu-smalltalk-message-template ()
   (format
 "messageSelectorAndArgumentNames [
-	\"comment stating purpose of message\"
+    \"comment stating purpose of message\"
 
     <category: '%s'>
-	| temporary variable names |
-	statements
+    | temporary variable names |
+    statements
 ]"
     (let ((cat (shampoo-get-current-category)))
       (if (equal cat "*") "still unclassified" cat))))
@@ -39,10 +39,10 @@
 
 (defun shampoo-squeak-message-template ()
 "messageSelectorAndArgumentNames
-	\"comment stating purpose of message\"
+    \"comment stating purpose of message\"
 
-	| temporary variable names |
-	statements")
+    | temporary variable names |
+    statements")
 
 (defun shampoo-squeak-extract-parent (class-name)
   (values nil class-name))
