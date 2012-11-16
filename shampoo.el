@@ -257,6 +257,13 @@
           (shampoo-update-current-side))
       (message "Shampoo: incorrect login info"))))
 
+(defun shampoo-reconnect ()
+  (interactive)
+  (with-~shampoo~
+   (shampoo-connect
+    (shampoo-connect-info-str
+     (shampoo-current-connection-info ~shampoo~)))))
+
 (defun shampoo-disconnect ()
   (interactive)
   (with-~shampoo~
