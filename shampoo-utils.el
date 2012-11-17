@@ -70,7 +70,9 @@
     (remove-if (lambda (x) (equal x "")) (split-string string "\s"))))
 
 (defun shampoo-join-strings (with strings)
-  (reduce (lambda (a b) (concat a with b)) strings))
+  (if (null strings)
+      ""
+    (reduce (lambda (a b) (concat a with b)) strings)))
 
 (defun shampoo-side-sym-as-param (sym)
   (cdr (assoc sym '((:instance . "instance")

@@ -87,6 +87,32 @@
     (make-shampoo-fileout-conf :item item :splitby by
                                :directory to :fproc funcs)))
 
+(defun shampoo-fileout-format-timestamp ()
+  (destructuring-bind
+      (secs mins hour day month year dow dst zone)
+      (decode-time)
+    (format "%04d-%02d-%02d--%02d-%02d-%02d"
+            year month day hour mins secs)))
+
+(defun shampoo-create-backup-dir (config)
+  (let ((backup-dir (concat (file-name-as-directory
+                             (shampoo-fileout-conf-directory conf))
+                            "shampoo-backup")))
+    (when (not (file-exists-p backup-dir))
+      (make-directory backup-dir))
+    backup-dir))
+
+(defun shampoo-fileout-backup (path conf)
+  (when (file-exists-p path)
+    (let* ((backup-dir  (shampoo-create-backup-dir conf))
+           (base-name   (file-name-sans-extension
+                         (file-name-nondirectory path)))
+           (backup-name (format "%s%s-%s.st"
+                                (file-name-as-directory backup-dir)
+                                (shampoo-fileout-format-timestamp)
+                                base-name)))
+      (copy-file path backup-name 0 t))))
+    
 (defun* shampoo-save-fileout (&key config)
   (lexical-let ((conf config))
     (lambda (response)
@@ -95,6 +121,7 @@
           (when (null file)
             (setq file (shampoo-response-attr 'category response)))
           (let ((path (shampoo-fileout-build-filename file conf)))
+            (shampoo-fileout-backup path conf)
             (with-temp-buffer
               (insert (shampoo-response-enclosed-string response))
               (write-region nil nil path))))
