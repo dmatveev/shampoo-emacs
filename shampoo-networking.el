@@ -15,7 +15,7 @@
   (lexical-let ((c connection)
                 (f user-down-fcn))
     (lambda (process event)
-      (when (shampoo-net-is-alive c)
+      (when (not (shampoo-net-is-alive c))
         (funcall f)))))
 
 (defun shampoo-net-receiver (connection user-recv-fcn)
