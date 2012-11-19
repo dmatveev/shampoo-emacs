@@ -12,7 +12,7 @@
 
 (defun shampoo-generic-splitter (args split-fcn)
   (lexical-let ((row-funcs args)
-                (splitter split-fcn))
+                (splitter  split-fcn))
     (lambda (wnd)
       (let ((head (first row-funcs))
             (tail (rest row-funcs)))
@@ -33,8 +33,8 @@
 
 (defun* shampoo-make-window-setup
     (&key buffer-name mode-to-use set-binding)
-  (lexical-let ((buffer buffer-name)
-                (mode mode-to-use)
+  (lexical-let ((buffer  buffer-name)
+                (mode    mode-to-use)
                 (binding set-binding))
     (lambda (wnd)
       (let ((buff (get-buffer-create buffer)))

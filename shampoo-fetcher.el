@@ -54,11 +54,11 @@
     str))
 
 (defun shampoo-fetcher-fsm-process-header (fsm)
-  (let* ((this-str (shampoo-uncr (shampoo-this-line)))
-         (next-str (shampoo-uncr (shampoo-next-line)))
+  (let* ((this-str     (shampoo-uncr (shampoo-this-line)))
+         (next-str     (shampoo-uncr (shampoo-next-line)))
          (maybe-header (concat this-str "\r\n" next-str "\r\n"))
-         (pattern '("Content-Length:" :sp :D :cr :lf :cr :lf))
-         (parsed (shampoo-regexp-parse maybe-header pattern)))
+         (pattern      '("Content-Length:" :sp :D :cr :lf :cr :lf))
+         (parsed       (shampoo-regexp-parse maybe-header pattern)))
     ; (message "Trying to parse \"%s\"" maybe-header)
     (if parsed
         (save-excursion
@@ -104,7 +104,7 @@
 
 (defun shampoo-fetcher-buffer ()
   (let* ((bufname "*shampoo-working-buffer*")
-         (buffer (get-buffer bufname)))
+         (buffer  (get-buffer bufname)))
     (or buffer
         (with-current-buffer (get-buffer-create bufname)
           (shampoo-working-mode)

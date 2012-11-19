@@ -15,7 +15,7 @@
 (defun shampoo-escape-xml (str)
   (if (stringp str)
       (let ((newstr (concat str))
-            (re "[\000-\010\013\014\016-\037]"))
+            (re     "[\000-\010\013\014\016-\037]"))
         (setq newstr (shampoo-replace-in-string newstr "\f" "\n"))
         (setq newstr (shampoo-replace-in-string newstr re   " "))
         (setq newstr (shampoo-replace-in-string newstr "&"  "&amp;"))

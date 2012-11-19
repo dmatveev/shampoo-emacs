@@ -99,7 +99,7 @@
 (defun shampoo-list-on-click (event)
   (interactive "e")
   (let ((window (posn-window (event-end event)))
-        (pos    (posn-point (event-end event))))
+        (pos    (posn-point  (event-end event))))
     (when (windowp window)
       (with-current-buffer (window-buffer window)
         (goto-char pos)

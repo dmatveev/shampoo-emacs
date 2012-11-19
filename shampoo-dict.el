@@ -38,4 +38,4 @@
 
 (provide 'shampoo-dict)
 
-;;; shampoo-dict.el end here.
+;;; shampoo-dict.el ends here.

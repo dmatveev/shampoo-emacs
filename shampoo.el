@@ -177,8 +177,8 @@
          (setf (shampoo-current-class-category ~shampoo~) nil))))))
 
 (defun shampoo-handle-response (response)
-  (let* ((type (shampoo-response-type response))
-         (buffer (shampoo-buffer-for type))
+  (let* ((type    (shampoo-response-type response))
+         (buffer  (shampoo-buffer-for type))
          (handler (shampoo-handler-for type)))
     (if handler
         (funcall handler response)

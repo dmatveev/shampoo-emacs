@@ -36,12 +36,6 @@
     (next-line)
     (shampoo-this-line)))
 
-(defmacro shampoo-save-window (&rest body)
-  (let ((current (make-symbol "current")))
-    `(let ((,current (selected-window)))
-       ,@body
-       (select-window ,current))))
-
 (defun shampoo-this-line-no ()
   (count-lines (point-min) (point)))
 
@@ -51,7 +45,7 @@
 (defun shampoo-delete-this-line ()
   (let* ((true-end (line-end-position))
          (incr-end (1+ true-end))
-         (del-end (if (> incr-end (point-max)) true-end incr-end)))
+         (del-end  (if (> incr-end (point-max)) true-end incr-end)))
   (delete-region (line-beginning-position) del-end)))
 
 (defun shampoo-clear-buffer (buffer-name)

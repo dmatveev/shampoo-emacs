@@ -170,3 +170,5 @@
       :split (shampoo-fileout-conf-splitby conf)))))
 
 (provide 'shampoo-fileout)
+ 
+;; shampoo-fileout.el ends here.
