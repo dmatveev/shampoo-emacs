@@ -87,6 +87,21 @@
   (concat (capitalize (substring str 0 1))
           (substring str 1)))
 
+(defun* shampoo-ask (&key prompt from default)
+  (if from
+      (completing-read
+       prompt (shampoo-buffer-lines from) nil t default)
+    (read-string prompt default)))
+
+(defmacro* shampoo-msum (&rest forms)
+  (let ((block-name (gensym))
+        (value-name (gensym)))
+    `(block ,block-name
+       ,@(loop for each in forms collect
+               `(let ((,value-name ,each))
+                  (when ,value-name
+                    (return-from ,block-name ,value-name)))))))
+
 (provide 'shampoo-utils)
 
 ;;; shampoo-utils.el ends here.
