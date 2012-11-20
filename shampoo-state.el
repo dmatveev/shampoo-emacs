@@ -44,7 +44,7 @@
     :last-id              1
     :workspaces           nil
     :response-subscribers (make-shampoo-dict)
-    :fileout-configs      (make-shampoo-dict))))
+    :fileout-configs      '())))
 
 (defun shampoo-subscribe (response-id action)
   (with-~shampoo~

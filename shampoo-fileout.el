@@ -19,7 +19,8 @@
     item
     splitby
     directory
-    fproc))
+    fproc
+    is-loaded))
 
 (defvar *shampoo-fileout-scenarios* '())
 
@@ -151,26 +152,40 @@
                 (make-shampoo-fileout-conf))))
     (setf (shampoo-fileout-conf-item conf) value)
     (shampoo-fileout-fill-conf conf)
+    (when (not (shampoo-fileout-conf-is-loaded conf))
+      (shampoo-fileout-try-save fileout-subject conf))
     conf))
 
-(defmacro mkmatcher (type value-to-match)
-  `(lexical-let ((value ,value-to-match))
+(defmacro mkmatcher (type-to-match value-to-match)
+  `(lexical-let ((type  ,type-to-match)
+                 (value ,value-to-match))
      (lambda (fileout-subject)
-       (and (eql   ,type (car fileout-subject))
+       (and (eql   type  (car fileout-subject))
             (equal value (cdr fileout-subject))))))
 
 (defun shampoo-fileout-namespace-match (namespace-name)
   (mkmatcher :namespace namespace-name))
 
+(defun shampoo-fileout-subject->matcher (fileout-subject)
+  (let ((type  (car fileout-subject))
+        (value (cdr fileout-subject)))
+    (mkmatcher type value)))
+
 (defun define-shampoo-fileout (matcher config)
+  (setf (shampoo-fileout-conf-is-loaded config) t)
   (pushnew (cons matcher config) *shampoo-fileout-scenarios*))
 
-(defun shampoo-fileout-script-for (fileout-subject)
+(defun shampoo-fileout-conf-lookup (fileout-subject items)
   (block root
-    (dolist (each *shampoo-fileout-scenarios*)
+    (dolist (each items)
       (when (funcall (car each) fileout-subject)
         (return-from root (copy-shampoo-fileout-conf (cdr each)))))
     nil))
+
+(defun shampoo-fileout-script-for (fileout-subject)
+  (shampoo-fileout-conf-lookup
+   fileout-subject
+   *shampoo-fileout-scenarios*))
 
 ;; FileOut request producer functions
 
@@ -221,8 +236,23 @@
 
 ;; Save/load fileout settings (for session)
 
+(defun shampoo-fileout-try-save (fileout-subject conf)
+  (when
+      (yes-or-no-p
+       "Would you like to use this configuration for the further fileouts? ")
+    (let ((stored-conf (copy-shampoo-fileout-conf conf)))
+      (setf (shampoo-fileout-conf-is-loaded stored-conf) t)
+      (with-~shampoo~
+       (pushnew
+        (cons (shampoo-fileout-subject->matcher fileout-subject)
+              stored-conf)
+        (shampoo-current-fileout-configs ~shampoo~))))))
+
 (defun shampoo-fileout-saved-for (fileout-subject)
-  nil)
+  (with-~shampoo~
+   (shampoo-fileout-conf-lookup
+    fileout-subject
+    (shampoo-current-fileout-configs ~shampoo~))))
 
 ;; Top-level fileout functions
 
