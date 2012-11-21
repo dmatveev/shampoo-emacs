@@ -5,7 +5,7 @@
 ;; This software is released under terms of the MIT license,
 ;; please refer to the LICENSE file for details.
 
-(require 'cl)
+(eval-when-compile (require 'cl))
 (require 'shampoo-state)
 
 (defun shampoo-log (&rest args)
@@ -33,7 +33,7 @@
 
 (defun shampoo-next-line ()
   (save-excursion
-    (next-line)
+    (forward-line)
     (shampoo-this-line)))
 
 (defun shampoo-this-line-no ()

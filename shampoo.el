@@ -6,6 +6,7 @@
 ;; This software is released under terms of the MIT license,
 ;; please refer to the LICENSE file for details.
 
+(eval-when-compile (require 'cl))
 (require 'shampoo-auth)
 (require 'shampoo-compile)
 (require 'shampoo-dialect)
@@ -154,7 +155,7 @@
   (cdr (assoc response-type *shampoo-buffer-info*)))
 
 (defun shampoo-handler-for (response-type)
-  (cdr (assoc type *shampoo-response-handlers*)))
+  (cdr (assoc response-type *shampoo-response-handlers*)))
 
 (defun shampoo-handle-aggregate-response (resp buffer)
   (save-excursion
