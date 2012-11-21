@@ -32,10 +32,11 @@
           ;; Just open the fist item
           (shampoo-list-on-select)
         ;; Search for the specified one
-        (while (search-forward item nil t)
-          (if (equal item (shampoo-this-line))
-              (progn (shampoo-open-from-list)
-                     (return))))))))
+        (block search-block
+          (while (search-forward item nil t)
+            (when (equal item (shampoo-this-line))
+                (shampoo-open-from-list)
+                (return-from search-block))))))))
 
 (defun shampoo-open-from-list ()
   (interactive)
