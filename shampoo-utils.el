@@ -6,6 +6,8 @@
 ;; please refer to the LICENSE file for details.
 
 (eval-when-compile (require 'cl))
+;; YES, I WILL USE GENSYM AND OTHER COOL CL STUFF!
+(require 'cl)
 (require 'shampoo-state)
 
 (defun shampoo-log (&rest args)

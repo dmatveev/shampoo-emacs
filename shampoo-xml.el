@@ -5,6 +5,8 @@
 ;; This software is released under terms of the MIT license,
 ;; please refer to the LICENSE file for details.
 
+(eval-when-compile (require 'cl))
+(require 'cl)
 (require 'xml)
 
 (defsubst shampoo-replace-in-string (str regexp newtext)

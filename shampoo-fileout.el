@@ -14,7 +14,7 @@
 
 ;; Definitions and variables
 
-(eval-when-compile
+(eval-when (compile load)
   (defstruct shampoo-fileout-conf
     item
     splitby
@@ -52,8 +52,7 @@
    (file-name-as-directory (shampoo-fileout-conf-directory conf))
    (shampoo-fileout-transform-filename
     name
-    (shampoo-fileout-conf-fproc conf))
-   ".st"))
+    (shampoo-fileout-conf-fproc conf))))
 
 ;; Fileout backup routines
 
@@ -66,7 +65,7 @@
 
 (defun shampoo-create-backup-dir (config)
   (let ((backup-dir (concat (file-name-as-directory
-                             (shampoo-fileout-conf-directory conf))
+                             (shampoo-fileout-conf-directory config))
                             "shampoo-backup")))
     (when (not (file-exists-p backup-dir))
       (make-directory backup-dir))

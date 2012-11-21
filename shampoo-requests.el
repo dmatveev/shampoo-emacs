@@ -8,6 +8,7 @@
 (eval-when-compile (require 'cl))
 (require 'shampoo-dict)
 (require 'shampoo-xml)
+(require 'shampoo-utils)
 
 (defun* shampoo-make-login-rq (&key id user encd-pass)
   (shampoo-xml

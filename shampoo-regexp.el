@@ -6,6 +6,7 @@
 ;; please refer to the LICENSE file for details.
 
 (eval-when-compile (require 'cl))
+(require 'cl)
 
 (defconst *shampoo-regexp-tokens*
   '((:Wd "\\([A-z]+[0-9]*\\)")
