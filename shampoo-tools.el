@@ -48,7 +48,7 @@
 
 (defun shampoo-open-workspace ()
   (interactive)
-  (let ((frame (make-frame))
+  (let ((frame  (make-frame))
         (buffer (generate-new-buffer "*shampoo-workspace*")))
     (with-~shampoo~
      (pushnew buffer (shampoo-current-workspaces ~shampoo~)))

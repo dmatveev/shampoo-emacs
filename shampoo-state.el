@@ -22,7 +22,8 @@
   busy-ids
   last-id
   workspaces
-  response-subscribers)
+  response-subscribers
+  fileout-configs)
 
 (defvar shampoo-current-state nil)
 
@@ -35,21 +36,22 @@
   (setq
    shampoo-current-state 
    (make-shampoo-current
-    :connection connection
-    :connection-info connection-info
-    :side :instance
-    :main-windows (make-shampoo-dict)
-    :busy-ids (make-shampoo-dict)
-    :last-id 1
-    :workspaces nil
-    :response-subscribers (make-shampoo-dict))))
+    :connection           connection
+    :connection-info      connection-info
+    :side                 :instance
+    :main-windows         (make-shampoo-dict)
+    :busy-ids             (make-shampoo-dict)
+    :last-id              1
+    :workspaces           nil
+    :response-subscribers (make-shampoo-dict)
+    :fileout-configs      '())))
 
 (defun shampoo-subscribe (response-id action)
   (with-~shampoo~
    (shampoo-dict-put
-    :key response-id
+    :key   response-id
     :value action
-    :into (shampoo-current-response-subscribers ~shampoo~))))
+    :into  (shampoo-current-response-subscribers ~shampoo~))))
 
 (defun shampoo-inform (response)
   (with-~shampoo~
