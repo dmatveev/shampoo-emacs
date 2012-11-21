@@ -9,24 +9,22 @@
 (require 'shampoo-state)
 
 (defun shampoo-log (&rest args)
-  (save-excursion
-    (set-buffer (get-buffer-create "*shampoo-log*"))
+  (with-current-buffer (get-buffer-create "*shampoo-log*")
     (insert (apply 'format args))
     (newline)))
 
 (defun shampoo-buffer-contents (buffer-name)
-  (save-excursion
-    (set-buffer (get-buffer buffer-name))
+  (with-current-buffer buffer-name
     (buffer-substring (point-min) (point-max))))
 
 (defun shampoo-buffer-lines (buffer-name)
-  (save-excursion
-    (set-buffer (get-buffer buffer-name))
-    (goto-char (point-min))
-    (let ((total (shampoo-buffer-num-lines)))
-      (loop while (/= total (shampoo-this-line-no))
-            collect (shampoo-this-line)
-            do (forward-line)))))
+  (with-current-buffer buffer-name
+    (save-excursion
+      (goto-char (point-min))
+      (let ((total (shampoo-buffer-num-lines)))
+        (loop while (/= total (shampoo-this-line-no))
+              collect (shampoo-this-line)
+              do (forward-line))))))
 
 (defun shampoo-this-line ()
   (buffer-substring (line-beginning-position) (line-end-position)))
@@ -49,14 +47,12 @@
   (delete-region (line-beginning-position) del-end)))
 
 (defun shampoo-clear-buffer (buffer-name)
-  (save-excursion
-    (set-buffer (get-buffer buffer-name))
+  (with-current-buffer buffer-name
     (let ((buffer-read-only nil))
       (erase-buffer))))
 
 (defun shampoo-update-header-at (buffer string)
-  (save-excursion
-    (set-buffer buffer)
+  (with-current-buffer buffer
     (setq header-line-format string)))
 
 (defun shampoo-split-string (string)

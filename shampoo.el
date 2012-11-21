@@ -122,11 +122,11 @@
         (raise-frame frame)
         (setq buffer (get-buffer-create "*shampoo-transcript*"))
         (set-window-buffer (frame-first-window frame) buffer)))
-    (save-excursion
-      (set-buffer buffer)
-      (setq header-line-format (shampoo-make-header))
-      (goto-char (point-max))
-      (insert (shampoo-response-enclosed-string resp)))))
+    (with-current-buffer buffer
+      (save-excursion
+        (setq header-line-format (shampoo-make-header))
+        (goto-char (point-max))
+        (insert (shampoo-response-enclosed-string resp))))))
 
 (defun shampoo-format-class-name (name)
   (if (shampoo-side-is :instance)
@@ -140,10 +140,10 @@
     'shampoo-method-name)))
           
 (defun shampoo-handle-source-response (resp)
-  (save-excursion
-    (set-buffer (get-buffer-create "*shampoo-code*"))
-    (erase-buffer)
-    (insert (shampoo-response-enclosed-string resp))))
+  (with-current-buffer (get-buffer-create "*shampoo-code*")
+    (save-excursion
+      (erase-buffer)
+      (insert (shampoo-response-enclosed-string resp)))))
 
 (defun shampoo-handle-operational-response (resp)
   (if (shampoo-response-is-success resp)
@@ -158,24 +158,24 @@
   (cdr (assoc response-type *shampoo-response-handlers*)))
 
 (defun shampoo-handle-aggregate-response (resp buffer)
-  (save-excursion
-    (set-buffer buffer)
-    (let ((buffer-read-only nil))
-      (shampoo-clear-buffer-with-dependent)
-      (when (boundp 'pre-insert-hook) (funcall pre-insert-hook))
-      (dolist (item (shampoo-response-items resp))
+  (with-current-buffer buffer
+    (save-excursion
+      (let ((buffer-read-only nil))
+        (shampoo-clear-buffer-with-dependent)
+        (when (boundp 'pre-insert-hook) (funcall pre-insert-hook))
+        (dolist (item (shampoo-response-items resp))
         (let ((text (shampoo-response-aggr-item item)))
           (when text
             (insert text)
             (newline))))
-      (goto-char (point-min))
-      (when (boundp 'dependent-buffer)
-        (shampoo-open-from-list))
-      (when (and (boundp 'update-source-buffer) force-update-buffer)
-        (funcall update-source-buffer))
-      (when (equal "Namespaces" (shampoo-response-type resp))
-        (with-~shampoo~
-         (setf (shampoo-current-class-category ~shampoo~) nil))))))
+        (goto-char (point-min))
+        (when (boundp 'dependent-buffer)
+          (shampoo-open-from-list))
+        (when (and (boundp 'update-source-buffer) force-update-buffer)
+          (funcall update-source-buffer))
+        (when (equal "Namespaces" (shampoo-response-type resp))
+          (with-~shampoo~
+           (setf (shampoo-current-class-category ~shampoo~) nil)))))))
 
 (defun shampoo-handle-response (response)
   (let* ((type    (shampoo-response-type response))

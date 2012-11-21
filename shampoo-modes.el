@@ -33,24 +33,23 @@
         code-compile 'shampoo-compile-method))
 
 (defun shampoo-update-current-side ()
-  (save-excursion
-    (set-buffer (get-buffer "*shampoo-categories*"))
-    (setq header-line-format
-          (format "%s side" (shampoo-side)))))
+  (shampoo-update-header-at
+   "*shampoo-categories*"
+   (format "%s side" (shampoo-side))))
 
 (defun shampoo-open-at-list (list-buff-name item)
-  (save-excursion
-    (set-buffer (get-buffer list-buff-name))
-    (goto-char (point-min))
-    (if (null item)
-        ;; Just open the fist item
-        (shampoo-list-on-select)
-      ;; Search for the specified one
-      (while (search-forward item nil t)
-        (if (equal item (shampoo-this-line))
-            (progn
-              (shampoo-open-from-list)
-              (return)))))))
+  (with-current-buffer list-buff-name
+    (save-excursion
+      (goto-char (point-min))
+      (if (null item)
+          ;; Just open the fist item
+          (shampoo-list-on-select)
+        ;; Search for the specified one
+        (while (search-forward item nil t)
+          (if (equal item (shampoo-this-line))
+              (progn
+                (shampoo-open-from-list)
+                (return))))))))
   
 (defun shampoo-open-from-list ()
   (interactive)
@@ -70,8 +69,7 @@
      (setf (shampoo-current-side ~shampoo~)
            (if (eq current-side :instance) :class :instance))))
   (shampoo-update-current-side)
-  (save-excursion
-    (set-buffer (get-buffer "*shampoo-classes*"))
+  (with-current-buffer "*shampoo-classes*"
     (setq *shampoo-code-compile* code-compile)
     (shampoo-send-message
      (funcall produce-request (shampoo-this-line)))
@@ -84,8 +82,7 @@
       (shampoo-clear-buffer-by-name-with-dependent depd-buffer))))
 
 (defun shampoo-clear-buffer-by-name-with-dependent (buffer-name)
-  (save-excursion
-    (set-buffer (get-buffer buffer-name))
+  (with-current-buffer buffer-name
     (shampoo-clear-buffer-with-dependent)))
 
 (defun shampoo-list-on-select ()
@@ -206,14 +203,14 @@
    :side (shampoo-side)))
 
 (defun shampoo-cats-update-source-buffer ()
-  (save-excursion
-    (set-buffer (get-buffer "*shampoo-code*"))
-    (setq header-line-format (shampoo-make-header))
-    (erase-buffer)
-    (with-~shampoo~
-     (insert
-      (shampoo-dialect-message-template
-       (shampoo-current-smalltalk ~shampoo~))))))
+  (with-current-buffer "*shampoo-code*"
+    (save-excursion
+      (setq header-line-format (shampoo-make-header))
+      (erase-buffer)
+      (with-~shampoo~
+       (insert
+        (shampoo-dialect-message-template
+         (shampoo-current-smalltalk ~shampoo~)))))))
 
 (defun shampoo-cats-pre-insert-hook ()
   (insert "*")
@@ -282,8 +279,7 @@
 
 (defun shampoo-open-from-buffer-helper (buffer-name)
   (when buffer-name
-    (save-excursion
-      (set-buffer (get-buffer buffer-name))
+    (with-current-buffer buffer-name
       (lambda (a b) (funcall 'produce-request)))))
 
 ;; This piece of code is adopted from the smalltalk-mode.el,
