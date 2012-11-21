@@ -14,7 +14,7 @@
 
 ;; Definitions and variables
 
-(eval-when (compile load)
+(eval-when (compile load eval)
   (defstruct shampoo-fileout-conf
     item
     splitby

@@ -19,6 +19,7 @@
 (require 'shampoo-state)
 (require 'shampoo-tools)
 (require 'shampoo-utils)
+(require 'shampoo-fileout)
 
 (defvar *shampoo-code-compile* 'shampoo-compile-class)
 
