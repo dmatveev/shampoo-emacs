@@ -31,15 +31,15 @@
 (defun shampoo-xml (tagname attrs &optional text subnodes)
   (with-output-to-string
     (princ (concat "<" (symbol-name tagname)))
-    (mapcar (lambda (attr)
-              (if (keywordp attr)
-                  (princ (concat
-                          " "
-                          (substring (symbol-name attr) 1)
-                          "=\""))
-                (progn (princ attr)
-                       (princ "\""))))
-            attrs)
+    (mapc (lambda (attr)
+            (if (keywordp attr)
+                (princ (concat
+                        " "
+                        (substring (symbol-name attr) 1)
+                        "=\""))
+              (progn (princ attr)
+                     (princ "\""))))
+          attrs)
     (if (or text subnodes)
         (progn
           (princ ">")
