@@ -9,6 +9,7 @@
 ;; YES, I WILL USE GENSYM AND OTHER COOL CL STUFF!
 (require 'cl)
 (require 'shampoo-state)
+(require 'shampoo-dialect)
 
 (defun shampoo-log (&rest args)
   (with-current-buffer (get-buffer-create "*shampoo-log*")

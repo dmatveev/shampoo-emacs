@@ -8,58 +8,23 @@
 (eval-when-compile (require 'cl))
 (require 'shampoo-dict)
 (require 'shampoo-state)
+(require 'shampoo-state-format)
 (require 'shampoo-faces)
 (require 'shampoo-utils)
 (require 'shampoo-compile)
 (require 'shampoo-fileout)
+(require 'shampoo-dialect)
+(require 'shampoo-list-mode)
 
 (define-derived-mode shampoo-working-mode
   text-mode "Shampoo mode for the working buffer"
   (shampoo-mklocal buflocal-fsm))
 
-(define-derived-mode shampoo-list-mode
-  text-mode "Shampoo generic mode for list buffers"
-  (setq buffer-read-only t)
-  (shampoo-mklocal set-current-item)
-  (shampoo-mklocal produce-request)
-  (shampoo-mklocal pre-insert-hook)
-  (shampoo-mklocal dependent-buffer)
-  (shampoo-mklocal update-source-buffer)
-  (shampoo-mklocal force-update-buffer)
-  (shampoo-mklocal code-compile 'shampoo-compile-method)
-  (shampoo-mklocal remove-item)
-  (shampoo-mklocal fileout-item))
-
 (defun shampoo-update-current-side ()
   (shampoo-update-header-at
    "*shampoo-categories*"
    (format "%s side" (shampoo-side))))
-
-(defun shampoo-open-at-list (list-buff-name item)
-  (with-current-buffer list-buff-name
-    (save-excursion
-      (goto-char (point-min))
-      (if (null item)
-          ;; Just open the fist item
-          (shampoo-list-on-select)
-        ;; Search for the specified one
-        (while (search-forward item nil t)
-          (if (equal item (shampoo-this-line))
-              (progn
-                (shampoo-open-from-list)
-                (return))))))))
   
-(defun shampoo-open-from-list ()
-  (interactive)
-  (let ((this-line (shampoo-this-line)))
-    (when (not (equal this-line ""))
-      (shampoo-reset-buffer-faces)
-      (shampoo-set-line-face 'shampoo-selected-list-item)
-      (when-shampoo-t set-current-item
-        (funcall set-current-item this-line))
-      (shampoo-send-message
-       (funcall (shampoo-getv produce-request) this-line)))))
-
 (defun shampoo-toggle-side ()
   (interactive)
   (with-~shampoo~
@@ -72,67 +37,6 @@
     (shampoo-send-message
      (funcall (shampoo-getv produce-request) (shampoo-this-line)))
     (funcall (shampoo-getv update-source-buffer))))
-
-(defun shampoo-clear-buffer-with-dependent ()
-  (let ((buffer-read-only nil))
-    (erase-buffer)
-    (when-shampoo-t depd-buffer
-      (shampoo-clear-buffer-by-name-with-dependent depd-buffer))))
-
-(defun shampoo-clear-buffer-by-name-with-dependent (buffer-name)
-  (with-current-buffer buffer-name
-    (shampoo-clear-buffer-with-dependent)))
-
-(defun shampoo-list-on-select ()
-  (interactive)
-  (shampoo-setq *shampoo-code-compile* (shampoo-getv code-compile))
-  (when-shampoo-t dependent-buffer
-    (shampoo-open-from-list))
-  (when-shampoo-t update-source-buffer
-    (funcall update-source-buffer)))
-
-(defun shampoo-list-on-click (event)
-  (interactive "e")
-  (let ((window (posn-window (event-end event)))
-        (pos    (posn-point  (event-end event))))
-    (when (windowp window)
-      (with-current-buffer (window-buffer window)
-        (goto-char pos)
-        (shampoo-list-on-select)))))
-
-(defun shampoo-list-remove-item ()
-  (interactive)
-  (when-shampoo-t remove-item
-    (let ((this-line (shampoo-this-line)))
-      (when (not (equal this-line ""))
-        (funcall remove-item this-line)))))
-
-(defun shampoo-list-fileout-item ()
-  (interactive)
-  (when-shampoo-t fileout-item
-    (let ((this-line (shampoo-this-line)))
-      (when (not (equal this-line ""))
-        (funcall fileout-item this-line)))))
-
-(define-key shampoo-list-mode-map
-  [return]
-  'shampoo-list-on-select)
-
-(define-key shampoo-list-mode-map
-  [mouse-1]
-  'shampoo-list-on-click)
-
-(define-key shampoo-list-mode-map
-  "\C-c\C-t"
-  'shampoo-toggle-side)
-
-(define-key shampoo-list-mode-map
-  "\C-c\C-d"
-  'shampoo-list-remove-item)
-
-(define-key shampoo-list-mode-map
-  "\C-c\C-f"
-  'shampoo-list-fileout-item)
 
 (defun shampoo-namespaces-set-current-item (item)
   (with-~shampoo~
@@ -278,7 +182,7 @@
 (defun shampoo-open-from-buffer-helper (buffer-name)
   (when buffer-name
     (with-current-buffer buffer-name
-      (lambda (a b) (funcall 'produce-request)))))
+      (lambda (a b) (funcall (shampoo-getv produce-request))))))
 
 ;; This piece of code is adopted from the smalltalk-mode.el,
 ;; the part of the GNU Smalltalk distribution.

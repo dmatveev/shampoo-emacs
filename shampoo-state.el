@@ -8,6 +8,8 @@
 (eval-when-compile (require 'cl))
 (require 'shampoo-dict)
 (require 'shampoo-response)
+(require 'shampoo-networking)
+(require 'shampoo-faces)
 
 (defstruct shampoo-current
   connection
@@ -31,6 +33,13 @@
   `(when shampoo-current-state
      (let ((~shampoo~ shampoo-current-state))
        ,@body)))
+
+(defun shampoo-send-message (msg)
+  (with-~shampoo~
+   ; (message "Sending \"%s\"" msg)
+   (shampoo-net-send
+    (shampoo-current-connection ~shampoo~)
+    msg)))
 
 (defun shampoo-reset-state (connection connection-info)
   (setq
@@ -78,6 +87,35 @@
 (defun shampoo-get-current-class-category ()
   (with-~shampoo~
    (shampoo-current-class-category ~shampoo~)))
+
+(defun shampoo-next-id (base)
+  (let ((next-id (1+ base)))
+    (mod next-id 65536)))
+
+(defun shampoo-id-is-busy (id)
+  (with-~shampoo~
+   (shampoo-dict-has id (shampoo-current-busy-ids ~shampoo~))))
+
+(defun shampoo-give-id ()
+  (with-~shampoo~
+   (let ((next-id
+          (shampoo-next-id (shampoo-current-last-id ~shampoo~))))
+     (while (shampoo-id-is-busy next-id)
+       (setq next-id (shampoo-next-id next-id)))
+     (shampoo-dict-put
+      :key next-id
+      :value t
+      :into (shampoo-current-busy-ids ~shampoo~))
+     (setf (shampoo-current-last-id ~shampoo~) next-id)
+     next-id)))
+
+(defun shampoo-release-id (id)
+  (with-~shampoo~
+   (shampoo-dict-drop id (shampoo-current-busy-ids ~shampoo~))))
+
+(defun shampoo-side-is (side)
+  (with-~shampoo~
+   (eq (shampoo-current-side ~shampoo~) side)))
 
 (provide 'shampoo-state)
 

@@ -8,10 +8,13 @@
 (eval-when-compile (require 'cl))
 (require 'shampoo-dict)
 (require 'shampoo-state)
+(require 'shampoo-state-format)
 (require 'shampoo-regexp)
 (require 'shampoo-utils)
 (require 'shampoo-requests)
 (require 'shampoo-response)
+(require 'shampoo-dialect)
+(require 'shampoo-list-mode)
 
 (defconst *class-pattern*
   '(:Wa :sp "subclass:" :sp "#" :Wd
