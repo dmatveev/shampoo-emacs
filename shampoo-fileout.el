@@ -26,6 +26,9 @@
 
 ;; File name manipulations
 
+(defun shampoo-filename-as-is (name)
+  name)
+
 (defun shampoo-filename-strip-package (name)
   (let ((parsed (shampoo-regexp-parse name '(:Wd "\-" :Ws))))
     (if parsed
@@ -104,22 +107,28 @@
                :from    from
                :default default))
 
-(defun shampoo-fileout-conf-get-splitby ()
-  (completing-read "Organize source code files by: "
-                   '("class" "category")
-                   nil t "category"))
+(defun shampoo-fileout-conf-get-splitby (fileout-subject)
+  (let ((type (car fileout-subject)))
+    (if (eql :class type)
+        "class"
+      (completing-read "Organize source code files by: "
+                       '("class" "category")
+                       nil t "category"))))
 
 (defun shampoo-fileout-conf-get-directory ()
   (read-directory-name "Store files into directory: "))
 
-(defun shampoo-fileout-conf-get-fproc ()
-  (let ((funcs '(("Strip package prefix from file names? "
+(defun shampoo-fileout-conf-get-fproc (fileout-subject)
+  (let ((type (car fileout-subject))
+        (funcs '(("Strip package prefix from file names? "
                   . shampoo-filename-strip-package)
                  ("Remove space characters from file names? "
                   . shampoo-filename-squash))))
-    (loop for each in funcs
-          when    (yes-or-no-p (car each))
-          collect (cdr each))))
+    (if (eql :class type)
+        '(shampoo-filename-as-is)
+      (loop for each in funcs
+            when    (yes-or-no-p (car each))
+            collect (cdr each)))))
 
 ;; Configuration setup functions
 
@@ -130,11 +139,11 @@
     `(when (null (,selector ,conf))
        (setf (,selector ,conf) ,provider))))
 
-(defun shampoo-fileout-fill-conf (conf)
+(defun shampoo-fileout-fill-conf (fileout-subject conf)
   (shampoo-fileout-fill
    :conf     conf
    :field    splitby
-   :provider (shampoo-fileout-conf-get-splitby))
+   :provider (shampoo-fileout-conf-get-splitby fileout-subject))
   (shampoo-fileout-fill
    :conf     conf
    :field    directory
@@ -142,7 +151,7 @@
   (shampoo-fileout-fill
    :conf     conf
    :field    fproc
-   :provider (shampoo-fileout-conf-get-fproc)))
+   :provider (shampoo-fileout-conf-get-fproc fileout-subject)))
 
 (defun* shampoo-fileout-get-conf (type value)
   (let* ((fileout-subject (cons type value))
@@ -151,7 +160,7 @@
                 (shampoo-fileout-saved-for  fileout-subject)
                 (make-shampoo-fileout-conf))))
     (setf (shampoo-fileout-conf-item conf) value)
-    (shampoo-fileout-fill-conf conf)
+    (shampoo-fileout-fill-conf fileout-subject conf)
     (when (not (shampoo-fileout-conf-is-loaded conf))
       (shampoo-fileout-try-save fileout-subject conf))
     conf))
