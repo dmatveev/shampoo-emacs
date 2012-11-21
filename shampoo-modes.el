@@ -15,22 +15,20 @@
 
 (define-derived-mode shampoo-working-mode
   text-mode "Shampoo mode for the working buffer"
-  (make-local-variable 'buflocal-fsm))
+  (shampoo-mklocal buflocal-fsm))
 
 (define-derived-mode shampoo-list-mode
   text-mode "Shampoo generic mode for list buffers"
   (setq buffer-read-only t)
-  (make-local-variable 'set-current-item)
-  (make-local-variable 'produce-request)
-  (make-local-variable 'pre-insert-hook)
-  (make-local-variable 'dependent-buffer)
-  (make-local-variable 'update-source-buffer)
-  (make-local-variable 'force-update-buffer)
-  (make-local-variable 'code-compile)
-  (make-local-variable 'remove-item)
-  (make-local-variable 'fileout-item)
-  (setq force-update-buffer nil
-        code-compile 'shampoo-compile-method))
+  (shampoo-mklocal set-current-item)
+  (shampoo-mklocal produce-request)
+  (shampoo-mklocal pre-insert-hook)
+  (shampoo-mklocal dependent-buffer)
+  (shampoo-mklocal update-source-buffer)
+  (shampoo-mklocal force-update-buffer)
+  (shampoo-mklocal code-compile 'shampoo-compile-method)
+  (shampoo-mklocal remove-item)
+  (shampoo-mklocal fileout-item))
 
 (defun shampoo-update-current-side ()
   (shampoo-update-header-at
@@ -57,10 +55,10 @@
     (when (not (equal this-line ""))
       (shampoo-reset-buffer-faces)
       (shampoo-set-line-face 'shampoo-selected-list-item)
-      (when (boundp 'set-current-item)
+      (when-shampoo-t set-current-item
         (funcall set-current-item this-line))
       (shampoo-send-message
-       (funcall produce-request this-line)))))
+       (funcall (shampoo-getv produce-request) this-line)))))
 
 (defun shampoo-toggle-side ()
   (interactive)
@@ -70,15 +68,15 @@
            (if (eq current-side :instance) :class :instance))))
   (shampoo-update-current-side)
   (with-current-buffer "*shampoo-classes*"
-    (setq *shampoo-code-compile* code-compile)
+    (shampoo-setq *shampoo-code-compile* (shampoo-getv code-compile))
     (shampoo-send-message
-     (funcall produce-request (shampoo-this-line)))
-    (funcall update-source-buffer)))
+     (funcall (shampoo-getv produce-request) (shampoo-this-line)))
+    (funcall (shampoo-getv update-source-buffer))))
 
 (defun shampoo-clear-buffer-with-dependent ()
   (let ((buffer-read-only nil))
     (erase-buffer)
-    (when (boundp 'depd-buffer)
+    (when-shampoo-t depd-buffer
       (shampoo-clear-buffer-by-name-with-dependent depd-buffer))))
 
 (defun shampoo-clear-buffer-by-name-with-dependent (buffer-name)
@@ -87,10 +85,10 @@
 
 (defun shampoo-list-on-select ()
   (interactive)
-  (setq *shampoo-code-compile* code-compile)
-  (when (boundp 'dependent-buffer)
+  (shampoo-setq *shampoo-code-compile* (shampoo-getv code-compile))
+  (when-shampoo-t dependent-buffer
     (shampoo-open-from-list))
-  (when (boundp 'update-source-buffer)
+  (when-shampoo-t update-source-buffer
     (funcall update-source-buffer)))
 
 (defun shampoo-list-on-click (event)
@@ -104,14 +102,14 @@
 
 (defun shampoo-list-remove-item ()
   (interactive)
-  (when (boundp 'remove-item)
+  (when-shampoo-t remove-item
     (let ((this-line (shampoo-this-line)))
       (when (not (equal this-line ""))
         (funcall remove-item this-line)))))
 
 (defun shampoo-list-fileout-item ()
   (interactive)
-  (when (boundp 'fileout-item)
+  (when-shampoo-t fileout-item
     (let ((this-line (shampoo-this-line)))
       (when (not (equal this-line ""))
         (funcall fileout-item this-line)))))
@@ -153,13 +151,13 @@
 
 (define-derived-mode shampoo-namespaces-list-mode
   shampoo-list-mode "Shampoo namespaces"
-  (setq set-current-item     'shampoo-namespaces-set-current-item
-        produce-request      'shampoo-namespaces-produce-request
-        dependent-buffer     "*shampoo-classes*"
-        force-update-buffer  t
-        update-source-buffer 'shampoo-namespaces-update-source-buffer
-        code-compile         'shampoo-compile-class
-        fileout-item         'shampoo-fileout-namespace))
+  (shampoo-setq set-current-item 'shampoo-namespaces-set-current-item)
+  (shampoo-setq produce-request  'shampoo-namespaces-produce-request)
+  (shampoo-setq dependent-buffer "*shampoo-classes*")
+  (shampoo-setq force-update-buffer t)
+  (shampoo-setq update-source-buffer 'shampoo-namespaces-update-source-buffer)
+  (shampoo-setq code-compile 'shampoo-compile-class)
+  (shampoo-setq fileout-item 'shampoo-fileout-namespace))
 
 (defun shampoo-classes-set-current-item (item)
   (with-~shampoo~
@@ -182,13 +180,13 @@
 
 (define-derived-mode shampoo-classes-list-mode
   shampoo-list-mode "Shampoo classes"
-  (setq set-current-item     'shampoo-classes-set-current-item
-        produce-request      'shampoo-classes-produce-request
-        dependent-buffer     "*shampoo-categories*"
-        update-source-buffer 'shampoo-classes-update-source-buffer
-        code-compile         'shampoo-compile-class
-        remove-item          'shampoo-remove-class
-        fileout-item         'shampoo-fileout-class))
+  (shampoo-setq set-current-item 'shampoo-classes-set-current-item)
+  (shampoo-setq produce-request 'shampoo-classes-produce-request)
+  (shampoo-setq dependent-buffer "*shampoo-categories*")
+  (shampoo-setq update-source-buffer 'shampoo-classes-update-source-buffer)
+  (shampoo-setq code-compile 'shampoo-compile-class)
+  (shampoo-setq remove-item 'shampoo-remove-class)
+  (shampoo-setq fileout-item 'shampoo-fileout-class))
 
 (defun shampoo-cats-set-current-item (item)
   (with-~shampoo~
@@ -218,12 +216,12 @@
 
 (define-derived-mode shampoo-cats-list-mode
   shampoo-list-mode "Shampoo categories"
-  (setq set-current-item     'shampoo-cats-set-current-item
-        produce-request      'shampoo-cats-produce-request
-        dependent-buffer     "*shampoo-methods*"
-        update-source-buffer 'shampoo-cats-update-source-buffer
-        pre-insert-hook      'shampoo-cats-pre-insert-hook
-        remove-item          'shampoo-remove-category))
+  (shampoo-setq set-current-item 'shampoo-cats-set-current-item)
+  (shampoo-setq produce-request  'shampoo-cats-produce-request)
+  (shampoo-setq dependent-buffer "*shampoo-methods*")
+  (shampoo-setq update-source-buffer 'shampoo-cats-update-source-buffer)
+  (shampoo-setq pre-insert-hook 'shampoo-cats-pre-insert-hook)
+  (shampoo-setq remove-item 'shampoo-remove-category))
 
 (define-key
   shampoo-cats-list-mode-map
@@ -261,10 +259,10 @@
 
 (define-derived-mode shampoo-methods-list-mode
   shampoo-list-mode "Shampoo methods"
-  (setq set-current-item     'shampoo-methods-set-current-item
-        produce-request      'shampoo-methods-produce-request
-        update-source-buffer 'shampoo-open-from-list
-        remove-item          'shampoo-remove-method))
+  (shampoo-setq set-current-item 'shampoo-methods-set-current-item)
+  (shampoo-setq produce-request  'shampoo-methods-produce-request)
+  (shampoo-setq update-source-buffer 'shampoo-open-from-list)
+  (shampoo-setq remove-item 'shampoo-remove-method))
 
 (define-key
   shampoo-methods-list-mode-map
@@ -376,8 +374,8 @@
 
 (defun shampoo-compile-code ()
   (interactive)
-  (when *shampoo-code-compile*
-    (funcall *shampoo-code-compile*)))
+  (let ((fcn (shampoo-getv *shampoo-code-compile*)))
+  (when fcn (funcall fcn))))
 
 (define-key shampoo-code-mode-map
   "\C-c\C-c"

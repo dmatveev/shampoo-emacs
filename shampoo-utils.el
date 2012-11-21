@@ -100,6 +100,24 @@
                   (when ,value-name
                     (return-from ,block-name ,value-name)))))))
 
+(defmacro* shampoo-mklocal (variable-name &optional value-form)
+  `(set (make-local-variable (quote ,variable-name)) ,value-form))
+
+(defmacro shampoo-setq (variable-name value-form)
+  `(if (boundp (quote ,variable-name))
+       (setq ,variable-name ,value-form)
+     (error "Variable %s is unbound" (quote ,variable-name))))
+
+(defmacro shampoo-getv (variable-name)
+  `(if (boundp (quote ,variable-name))
+       ,variable-name
+     (error "Variable %s is unbound" (quote ,variable-name))))
+
+(defmacro when-shampoo-t (variable-name &rest body)
+  `(if (boundp (quote ,variable-name))
+       (if (not (null ,variable-name))
+           ,@body)))
+
 (provide 'shampoo-utils)
 
 ;;; shampoo-utils.el ends here.

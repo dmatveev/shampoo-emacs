@@ -162,17 +162,17 @@
     (save-excursion
       (let ((buffer-read-only nil))
         (shampoo-clear-buffer-with-dependent)
-        (when (boundp 'pre-insert-hook) (funcall pre-insert-hook))
+        (when-shampoo-t pre-insert-hook (funcall pre-insert-hook))
         (dolist (item (shampoo-response-items resp))
         (let ((text (shampoo-response-aggr-item item)))
           (when text
             (insert text)
             (newline))))
         (goto-char (point-min))
-        (when (boundp 'dependent-buffer)
-          (shampoo-open-from-list))
-        (when (and (boundp 'update-source-buffer) force-update-buffer)
-          (funcall update-source-buffer))
+        (when-shampoo-t dependent-buffer (shampoo-open-from-list))
+        (when (and (boundp 'update-source-buffer)
+                   (boundp 'force-update-buffer))
+          (when force-update-buffer (funcall update-source-buffer)))
         (when (equal "Namespaces" (shampoo-response-type resp))
           (with-~shampoo~
            (setf (shampoo-current-class-category ~shampoo~) nil)))))))

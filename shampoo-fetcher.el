@@ -94,13 +94,14 @@
 
 (defun shampoo-fetcher-process (str)
   (with-current-buffer (shampoo-fetcher-buffer)
-    (goto-char (point-max))
-    (insert str)
-    (goto-char (point-min))
-    (loop while (shampoo-fetcher-can-process buflocal-fsm)
-          for payload = (shampoo-fetcher-fsm-process buflocal-fsm)
-          unless (null payload)
-          collect payload)))
+    (when (boundp 'buflocal-fsm)
+      (goto-char (point-max))
+      (insert str)
+      (goto-char (point-min))
+      (loop while (shampoo-fetcher-can-process buflocal-fsm)
+            for payload = (shampoo-fetcher-fsm-process buflocal-fsm)
+            unless (null payload)
+            collect payload))))
 
 (defun shampoo-fetcher-buffer ()
   (let* ((bufname "*shampoo-working-buffer*")
@@ -109,9 +110,11 @@
         (with-current-buffer (get-buffer-create bufname)
           (shampoo-working-mode)
           (erase-buffer)
-          (setq buflocal-fsm
-                (make-shampoo-fetcher-fsm :state :header 
-                                          :bytes-awaiting 0))
+          (if (boundp 'buflocal-fsm)
+              (setq buflocal-fsm
+                    (make-shampoo-fetcher-fsm :state :header 
+                                              :bytes-awaiting 0))
+            (error "No FSM created in the working buffer!"))
           (current-buffer)))))
 
 (provide 'shampoo-fetcher)
