@@ -5,6 +5,7 @@
 ;; This software is released under terms of the MIT license,
 ;; please refer to the LICENSE file for details.
 
+(eval-when-compile (require 'cl))
 (require 'shampoo-regexp)
 (require 'shampoo-state)
 
