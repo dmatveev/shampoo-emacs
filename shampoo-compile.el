@@ -5,13 +5,16 @@
 ;; This software is released under terms of the MIT license,
 ;; please refer to the LICENSE file for details.
 
-(require 'cl)
+(eval-when-compile (require 'cl))
 (require 'shampoo-dict)
 (require 'shampoo-state)
+(require 'shampoo-state-format)
 (require 'shampoo-regexp)
 (require 'shampoo-utils)
 (require 'shampoo-requests)
 (require 'shampoo-response)
+(require 'shampoo-dialect)
+(require 'shampoo-list-mode)
 
 (defconst *class-pattern*
   '(:Wa :sp "subclass:" :sp "#" :Wd
@@ -161,16 +164,16 @@
    resp))
 
 (defun shampoo-handle-class-response (resp)
-  (save-excursion
-    (set-buffer (get-buffer-create "*shampoo-code*"))
-    (erase-buffer)
-    (setq header-line-format (shampoo-make-header))
-    (if (shampoo-side-is :instance)
-        (with-~shampoo~
-          (shampoo-print-class-instance-from-response resp)
-          (setf (shampoo-current-class-category ~shampoo~)
-                (shampoo-response-attr 'category resp)))
-      (shampoo-print-class-class-from-response resp))))
+  (with-current-buffer "*shampoo-code*"
+    (save-excursion
+      (erase-buffer)
+      (setq header-line-format (shampoo-make-header))
+      (if (shampoo-side-is :instance)
+          (with-~shampoo~
+           (shampoo-print-class-instance-from-response resp)
+           (setf (shampoo-current-class-category ~shampoo~)
+                 (shampoo-response-attr 'category resp)))
+        (shampoo-print-class-class-from-response resp)))))
 
 (defun shampoo-remove-class (class-name)
   (when (yes-or-no-p

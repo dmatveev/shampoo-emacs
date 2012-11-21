@@ -6,6 +6,7 @@
 ;; This software is released under terms of the MIT license,
 ;; please refer to the LICENSE file for details.
 
+(eval-when-compile (require 'cl))
 (require 'shampoo-auth)
 (require 'shampoo-compile)
 (require 'shampoo-dialect)
@@ -18,6 +19,7 @@
 (require 'shampoo-state)
 (require 'shampoo-tools)
 (require 'shampoo-utils)
+(require 'shampoo-fileout)
 
 (defvar *shampoo-code-compile* 'shampoo-compile-class)
 
@@ -36,46 +38,6 @@
     ("Echo"                . shampoo-handle-transcript)
     ("Magic"               . shampoo-handle-auth)
     ("FileOut"             . shampoo-handle-fileout)))
-
-(defun shampoo-next-id (base)
-  (let ((next-id (1+ base)))
-    (mod next-id 65536)))
-
-(defun shampoo-id-is-busy (id)
-  (with-~shampoo~
-   (shampoo-dict-has id (shampoo-current-busy-ids ~shampoo~))))
-
-(defun shampoo-give-id ()
-  (with-~shampoo~
-   (let ((next-id
-          (shampoo-next-id (shampoo-current-last-id ~shampoo~))))
-     (while (shampoo-id-is-busy next-id)
-       (setq next-id (shampoo-next-id next-id)))
-     (shampoo-dict-put
-      :key next-id
-      :value t
-      :into (shampoo-current-busy-ids ~shampoo~))
-     (setf (shampoo-current-last-id ~shampoo~) next-id)
-     next-id)))
-
-(defun shampoo-release-id (id)
-  (with-~shampoo~
-   (shampoo-dict-drop id (shampoo-current-busy-ids ~shampoo~))))
-
-(defun shampoo-side-is (side)
-  (with-~shampoo~
-   (eq (shampoo-current-side ~shampoo~) side)))
-
-(defun shampoo-make-header ()
-  (with-~shampoo~
-   (format
-    "%s    %s"
-    (shampoo-connect-info-str
-     (shampoo-current-connection-info ~shampoo~))
-    (shampoo-set-str-face
-     (shampoo-dialect-specific-version
-      (shampoo-current-smalltalk ~shampoo~))
-     'shampoo-smalltalk-version))))
 
 (defun shampoo-update-headers ()
   (let ((header (shampoo-make-header)))
@@ -121,28 +83,18 @@
         (raise-frame frame)
         (setq buffer (get-buffer-create "*shampoo-transcript*"))
         (set-window-buffer (frame-first-window frame) buffer)))
-    (save-excursion
-      (set-buffer buffer)
-      (setq header-line-format (shampoo-make-header))
-      (goto-char (point-max))
-      (insert (shampoo-response-enclosed-string resp)))))
+    (with-current-buffer buffer
+      (save-excursion
+        (setq header-line-format (shampoo-make-header))
+        (goto-char (point-max))
+        (insert (shampoo-response-enclosed-string resp))))))
 
-(defun shampoo-format-class-name (name)
-  (if (shampoo-side-is :instance)
-      name
-    (format "%s class" name)))
-
-(defun shampoo-build-method-name (class method)
-  (with-~shampoo~
-   (shampoo-set-str-face
-    (format "%s>>%s" (shampoo-format-class-name class) method)
-    'shampoo-method-name)))
           
 (defun shampoo-handle-source-response (resp)
-  (save-excursion
-    (set-buffer (get-buffer-create "*shampoo-code*"))
-    (erase-buffer)
-    (insert (shampoo-response-enclosed-string resp))))
+  (with-current-buffer (get-buffer-create "*shampoo-code*")
+    (save-excursion
+      (erase-buffer)
+      (insert (shampoo-response-enclosed-string resp)))))
 
 (defun shampoo-handle-operational-response (resp)
   (if (shampoo-response-is-success resp)
@@ -154,27 +106,27 @@
   (cdr (assoc response-type *shampoo-buffer-info*)))
 
 (defun shampoo-handler-for (response-type)
-  (cdr (assoc type *shampoo-response-handlers*)))
+  (cdr (assoc response-type *shampoo-response-handlers*)))
 
 (defun shampoo-handle-aggregate-response (resp buffer)
-  (save-excursion
-    (set-buffer buffer)
-    (let ((buffer-read-only nil))
-      (shampoo-clear-buffer-with-dependent)
-      (when (boundp 'pre-insert-hook) (funcall pre-insert-hook))
-      (dolist (item (shampoo-response-items resp))
+  (with-current-buffer buffer
+    (save-excursion
+      (let ((buffer-read-only nil))
+        (shampoo-clear-buffer-with-dependent)
+        (when-shampoo-t pre-insert-hook (funcall pre-insert-hook))
+        (dolist (item (shampoo-response-items resp))
         (let ((text (shampoo-response-aggr-item item)))
           (when text
             (insert text)
             (newline))))
-      (goto-char (point-min))
-      (when (boundp 'dependent-buffer)
-        (shampoo-open-from-list))
-      (when (and (boundp 'update-source-buffer) force-update-buffer)
-        (funcall update-source-buffer))
-      (when (equal "Namespaces" (shampoo-response-type resp))
-        (with-~shampoo~
-         (setf (shampoo-current-class-category ~shampoo~) nil))))))
+        (goto-char (point-min))
+        (when-shampoo-t dependent-buffer (shampoo-open-from-list))
+        (when (and (boundp 'update-source-buffer)
+                   (boundp 'force-update-buffer))
+          (when force-update-buffer (funcall update-source-buffer)))
+        (when (equal "Namespaces" (shampoo-response-type resp))
+          (with-~shampoo~
+           (setf (shampoo-current-class-category ~shampoo~) nil)))))))
 
 (defun shampoo-handle-response (response)
   (let* ((type    (shampoo-response-type response))
@@ -186,52 +138,6 @@
     (shampoo-inform response)
     (when (shampoo-response-is-last-in-sequence response)
       (shampoo-release-id (shampoo-response-id response)))))
-  
-(defun shampoo-send-message (msg)
-  (with-~shampoo~
-   ; (message "Sending \"%s\"" msg)
-   (shampoo-net-send
-    (shampoo-current-connection ~shampoo~)
-    msg)))
-
-(defun shampoo-make-class-opener (class-to-open)
-  (lexical-let ((class class-to-open))
-    (lambda (resp)
-      (shampoo-open-at-list "*shampoo-classes*" class))))
-
-(defun shampoo-make-category-opener (cat-to-open)
-  (lexical-let ((cat cat-to-open))
-    (lambda (resp)
-      (shampoo-open-at-list "*shampoo-categories*" cat))))
-
-(defun* shampoo-make-class-reloader (&optional class-to-open)
-  (lexical-let ((open-then class-to-open))
-    (lambda (resp)
-      (when (shampoo-response-is-success resp)
-        (shampoo-reload-class-list open-then)))))
-  
-(defun* shampoo-reload-class-list (&optional open-then)
-  (let ((request-id (shampoo-give-id)))
-    (shampoo-subscribe
-     request-id
-     (shampoo-make-class-opener open-then))
-    (shampoo-send-message
-     (shampoo-make-classes-rq
-      :id request-id
-      :ns (shampoo-get-current-namespace)))))
-
-(defun* shampoo-reload-categories-list (&key open-then need-open)
-  (let ((request-id (shampoo-give-id)))
-    (when need-open
-      (shampoo-subscribe
-       request-id
-       (shampoo-make-category-opener open-then)))
-    (shampoo-send-message
-     (shampoo-make-cats-rq
-      :id request-id
-      :ns (shampoo-get-current-namespace)
-      :class (shampoo-get-current-class)
-      :side (shampoo-side)))))
 
 (defun shampoo-handle-incoming (str)
   (dolist (msg (shampoo-fetcher-process str))

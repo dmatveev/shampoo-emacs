@@ -27,9 +27,9 @@
   (lexical-let ((buff buffer))
     (lambda (resp)
       (when (not (shampoo-response-is-failure resp))
-        (save-excursion
-          (set-buffer buff)
-          (insert (shampoo-response-enclosed-string resp)))))))
+        (with-current-buffer buff
+          (save-excursion
+            (insert (shampoo-response-enclosed-string resp))))))))
 
 (defun shampoo-print-it (from to)
   (interactive "r")
@@ -54,8 +54,7 @@
      (pushnew buffer (shampoo-current-workspaces ~shampoo~)))
     (raise-frame frame)
     (set-window-buffer (frame-first-window frame) buffer)
-    (save-excursion
-      (set-buffer buffer)
+    (with-current-buffer buffer
       (shampoo-workspace-mode)
       (setq header-line-format (shampoo-make-header)))))
 

@@ -39,8 +39,7 @@
     (lambda (wnd)
       (let ((buff (get-buffer-create buffer)))
         (set-window-buffer wnd buff)
-        (save-excursion
-          (set-buffer buff)
+        (with-current-buffer buff
           (funcall mode))
         (with-~shampoo~
          (shampoo-dict-put

@@ -13,7 +13,8 @@
     (((type tty) (class mono))
      :inverse-video t)
     (t :background "gray"))
-  "Selected list item face")
+  "Selected list item face"
+  :group 'basic-faces)
 
 (defface shampoo-smalltalk-version
   '((((class color) (min-colors 88) (background light))
@@ -22,14 +23,16 @@
      :foreground "pale green")
     (((class color) (min-colors 8))
      :foreground "magenta"))
-  "Smalltalk system version face")
+  "Smalltalk system version face"
+  :group 'basic-faces)
 
 (defface shampoo-method-name
   '((((background light))
      :foreground "black" :weight black)
     (((background dark))
      :foreground "white" :weight black))
-  "Smalltalk system version face")
+  "Smalltalk system version face"
+  :group 'basic-faces)
 
 (defun shampoo-set-line-face (facename)
   (let ((buffer-read-only nil))
@@ -43,9 +46,7 @@
 
 (defun shampoo-reset-buffer-faces ()
   (let ((buffer-read-only nil))
-    (remove-text-properties (point-min)
-                            (point-max)
-                            `(face nil))))
+    (remove-text-properties (point-min) (point-max) `(face nil))))
 
 (provide 'shampoo-faces)
 

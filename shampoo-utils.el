@@ -5,35 +5,36 @@
 ;; This software is released under terms of the MIT license,
 ;; please refer to the LICENSE file for details.
 
+(eval-when-compile (require 'cl))
+;; YES, I WILL USE GENSYM AND OTHER COOL CL STUFF!
 (require 'cl)
 (require 'shampoo-state)
+(require 'shampoo-dialect)
 
 (defun shampoo-log (&rest args)
-  (save-excursion
-    (set-buffer (get-buffer-create "*shampoo-log*"))
+  (with-current-buffer (get-buffer-create "*shampoo-log*")
     (insert (apply 'format args))
     (newline)))
 
 (defun shampoo-buffer-contents (buffer-name)
-  (save-excursion
-    (set-buffer (get-buffer buffer-name))
+  (with-current-buffer buffer-name
     (buffer-substring (point-min) (point-max))))
 
 (defun shampoo-buffer-lines (buffer-name)
-  (save-excursion
-    (set-buffer (get-buffer buffer-name))
-    (goto-char (point-min))
-    (let ((total (shampoo-buffer-num-lines)))
-      (loop while (/= total (shampoo-this-line-no))
-            collect (shampoo-this-line)
-            do (forward-line)))))
+  (with-current-buffer buffer-name
+    (save-excursion
+      (goto-char (point-min))
+      (let ((total (shampoo-buffer-num-lines)))
+        (loop while (/= total (shampoo-this-line-no))
+              collect (shampoo-this-line)
+              do (forward-line))))))
 
 (defun shampoo-this-line ()
   (buffer-substring (line-beginning-position) (line-end-position)))
 
 (defun shampoo-next-line ()
   (save-excursion
-    (next-line)
+    (forward-line)
     (shampoo-this-line)))
 
 (defun shampoo-this-line-no ()
@@ -49,14 +50,12 @@
   (delete-region (line-beginning-position) del-end)))
 
 (defun shampoo-clear-buffer (buffer-name)
-  (save-excursion
-    (set-buffer (get-buffer buffer-name))
+  (with-current-buffer buffer-name
     (let ((buffer-read-only nil))
       (erase-buffer))))
 
 (defun shampoo-update-header-at (buffer string)
-  (save-excursion
-    (set-buffer buffer)
+  (with-current-buffer buffer
     (setq header-line-format string)))
 
 (defun shampoo-split-string (string)
@@ -101,6 +100,24 @@
                `(let ((,value-name ,each))
                   (when ,value-name
                     (return-from ,block-name ,value-name)))))))
+
+(defmacro* shampoo-mklocal (variable-name &optional value-form)
+  `(set (make-local-variable (quote ,variable-name)) ,value-form))
+
+(defmacro shampoo-setq (variable-name value-form)
+  `(if (boundp (quote ,variable-name))
+       (setq ,variable-name ,value-form)
+     (error "Variable %s is unbound" (quote ,variable-name))))
+
+(defmacro shampoo-getv (variable-name)
+  `(if (boundp (quote ,variable-name))
+       ,variable-name
+     (error "Variable %s is unbound" (quote ,variable-name))))
+
+(defmacro when-shampoo-t (variable-name &rest body)
+  `(if (boundp (quote ,variable-name))
+       (if (not (null ,variable-name))
+           ,@body)))
 
 (provide 'shampoo-utils)
 
