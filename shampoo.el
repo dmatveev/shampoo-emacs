@@ -1,10 +1,11 @@
-;;; shampoo.el --- Shampoo, a remote Smalltalk developemnt
-;;                 mode for GNU Emacs
+;;; shampoo.el --- A remote Smalltalk development mode
 ;;
 ;; Copyright (C) 2010 - 2012 Dmitry Matveev <me@dmitrymatveev.co.uk>
 ;;
 ;; This software is released under terms of the MIT license,
 ;; please refer to the LICENSE file for details.
+
+;;; Code:
 
 (eval-when-compile (require 'cl))
 (require 'shampoo-auth)
@@ -182,4 +183,4 @@
 
 (provide 'shampoo)
 
-;; shampoo.el ends here.
+;;; shampoo.el ends here.
