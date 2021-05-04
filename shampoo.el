@@ -1,9 +1,20 @@
 ;;; shampoo.el --- A remote Smalltalk development mode
-;;
+
 ;; Copyright (C) 2010 - 2012 Dmitry Matveev <me@dmitrymatveev.co.uk>
-;;
+;; SPDX-License-Identifier: MIT
+
+;; Author: Dmitry Matveev <me@dmitrymatveev.co.uk>
+;; URL: https://revival.sh/shampoo/
+;; Package-Requires: ((emacs "24.1"))
+;; Package-Version: 0.0.1
+;; Keywords: languages
+
 ;; This software is released under terms of the MIT license,
 ;; please refer to the LICENSE file for details.
+
+;;; Commentary:
+
+;; A set of tools for remote Smalltalk development with Emacs.
 
 ;;; Code:
 
@@ -90,7 +101,7 @@
         (goto-char (point-max))
         (insert (shampoo-response-enclosed-string resp))))))
 
-          
+
 (defun shampoo-handle-source-response (resp)
   (with-current-buffer (get-buffer-create "*shampoo-code*")
     (save-excursion
@@ -184,4 +195,4 @@
 
 (provide 'shampoo)
 
-;;; shampoo.el ends here.
+;;; shampoo.el ends here
