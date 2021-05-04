@@ -148,6 +148,7 @@
 (defun shampoo-handle-shutdown ()
   (message "Shampoo: connection terminated"))
 
+;;;###autoload
 (defun shampoo-connect (login-info)
   (interactive "sConnect to a Shampoo image: ")
   (let ((connect-info (shampoo-parse-login login-info)))
